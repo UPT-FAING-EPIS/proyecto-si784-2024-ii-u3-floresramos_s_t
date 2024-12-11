@@ -234,6 +234,11 @@ jobs:
             method=$(grep -o 'Method coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
             echo "::notice title=Coverage Results::Line Coverage: ${total}, Branch Coverage: ${branch}, Method Coverage: ${method}"
           fi
+      - name: Upload coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-results
+          path: coveragereport
 
   bdd:
     name: BDD Tests
@@ -308,6 +313,11 @@ jobs:
             failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
             echo "::notice title=BDD Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
           fi
+      - name: Upload BDD results
+        uses: actions/upload-artifact@v3
+        with:
+            name: bdd-results
+            path: PROYECTO_PDF/reports/bdd
 
   ui-tests:
     name: Interface Tests
@@ -436,63 +446,152 @@ jobs:
         run: |
           mkdir -p reports/mutation
           cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/* reports/mutation/ || true
+      - name: Upload mutation results
+        uses: actions/upload-artifact@v3
+        with:
+          name: mutation-results
+          path: PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput
 
   publish-dashboard:
-    needs: [security-analysis, sonarqube, tests, bdd, ui-tests, mutation]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Prepare Dashboard
-        run: |
-          mkdir -p dashboard
-          cat > dashboard/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Testing Results Dashboard</title>
-            <style>
-              body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding: 20px; }
-              .card { border: 1px solid #ddd; padding: 20px; margin: 10px; border-radius: 8px; }
-              .metric { font-size: 24px; color: #2196F3; }
-            </style>
-          </head>
-          <body>
-            <h1>Testing Results Dashboard</h1>
+      needs: [security-analysis, sonarqube, tests, bdd, ui-tests, mutation]
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Create dashboard directory
+          run: mkdir -p dashboard
+        
+        - name: Download coverage results
+          uses: actions/download-artifact@v3
+          with:
+            name: coverage-results
+            path: coverage-results
+        
+        - name: Download BDD results
+          uses: actions/download-artifact@v3
+          with:
+            name: bdd-results
+            path: bdd-results
+        
+        - name: Download mutation results
+          uses: actions/download-artifact@v3
+          with:
+            name: mutation-results
+            path: mutation-results
+        
+        - name: Generate dashboard
+          run: |
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Testing Results Dashboard</title>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  max-width: 1000px;
+                  margin: 0 auto;
+                  padding: 20px;
+                  background-color: #f5f5f5;
+                }
+                .dashboard-grid {
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                  gap: 20px;
+                  margin-top: 20px;
+                }
+                .card {
+                  background: white;
+                  border-radius: 8px;
+                  padding: 20px;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                  transition: transform 0.2s;
+                }
+                .card:hover {
+                  transform: translateY(-5px);
+                }
+                h1 {
+                  color: #333;
+                  text-align: center;
+                  margin-bottom: 30px;
+                }
+                h2 {
+                  color: #2196F3;
+                  margin-top: 0;
+                  font-size: 1.5em;
+                }
+                .metrics {
+                  margin-top: 15px;
+                  font-size: 1.1em;
+                }
+                .metric {
+                  margin: 5px 0;
+                  color: #555;
+                }
+                .view-report {
+                  display: inline-block;
+                  margin-top: 15px;
+                  padding: 8px 16px;
+                  background-color: #2196F3;
+                  color: white;
+                  text-decoration: none;
+                  border-radius: 4px;
+                  transition: background-color 0.2s;
+                }
+                .view-report:hover {
+                  background-color: #1976D2;
+                }
+              </style>
+            </head>
+            <body>
+              <h1>Testing Results Dashboard</h1>
+              <div class="dashboard-grid">
+                <!-- Coverage Report Card -->
+                <div class="card">
+                  <h2>Code Coverage</h2>
+                  <div class="metrics">
+                    <div class="metric">Line Coverage: <span id="lineCoverage">-</span></div>
+                    <div class="metric">Branch Coverage: <span id="branchCoverage">-</span></div>
+                    <div class="metric">Method Coverage: <span id="methodCoverage">-</span></div>
+                  </div>
+                  <a href="/reports/coverage/index.html" class="view-report">View Full Report</a>
+                </div>
+                
+                <!-- BDD Tests Card -->
+                <div class="card">
+                  <h2>BDD Tests</h2>
+                  <div class="metrics">
+                    <div class="metric">Scenarios Passed: <span id="bddPassed">-</span></div>
+                    <div class="metric">Scenarios Failed: <span id="bddFailed">-</span></div>
+                    <div class="metric">Features Covered: <span id="features">-</span></div>
+                  </div>
+                  <a href="/reports/bdd/PDFTests.html" class="view-report">View Full Report</a>
+                </div>
+                
+                <!-- Mutation Tests Card -->
+                <div class="card">
+                  <h2>Mutation Tests</h2>
+                  <div class="metrics">
+                    <div class="metric">Mutation Score: <span id="mutationScore">-</span></div>
+                    <div class="metric">Killed Mutants: <span id="killedMutants">-</span></div>
+                    <div class="metric">Survived Mutants: <span id="survivedMutants">-</span></div>
+                  </div>
+                  <a href="/reports/mutation/index.html" class="view-report">View Full Report</a>
+                </div>
+              </div>
+            </body>
+            </html>
+            cat > dashboard/index.html << 'EOF'
+            [CONTENIDO_DEL_HTML_ANTERIOR]
+            EOF
             
-            <div class="card">
-              <h2>Security Analysis</h2>
-              <a href="/reports/security/index.html">Security Reports</a>
-            </div>
-            
-            <div class="card">
-              <h2>SonarQube Analysis</h2>
-              <a href="https://sonarcloud.io/dashboard?id=mario-flores_proyectopdf">SonarQube Dashboard</a>
-            </div>
-            
-            <div class="card">
-              <h2>Code Coverage</h2>
-              <a href="/reports/coverage/index.html">Coverage Report</a>
-            </div>
-            
-            <div class="card">
-              <h2>BDD Test Results</h2>
-              <a href="/reports/bdd/PDFTests.html">BDD Test Report</a>
-            </div>
-            
-            <div class="card">
-              <h2>UI Test Results</h2>
-              <a href="/ui-test-results">UI Test Artifacts</a>
-            </div>
-            
-            <div class="card">
-              <h2>Mutation Testing</h2>
-              <a href="/reports/mutation/index.html">Mutation Test Report</a>
-            </div>
-          </body>
-          </html>
-          EOF
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dashboard
+            # Copiar los reportes a sus directorios correspondientes
+            mkdir -p dashboard/reports/{coverage,bdd,mutation}
+            cp -r coverage-results/* dashboard/reports/coverage/ || true
+            cp -r bdd-results/* dashboard/reports/bdd/ || true
+            cp -r mutation-results/* dashboard/reports/mutation/ || true
+        
+        - name: Deploy to GitHub Pages
+          uses: peaceiris/actions-gh-pages@v3
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            publish_dir: dashboard
