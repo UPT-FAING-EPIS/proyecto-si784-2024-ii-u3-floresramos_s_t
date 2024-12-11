@@ -224,11 +224,10 @@ jobs:
       - name: Extraer Métricas de Cobertura
         run: |
           if [ -f coveragereport/Summary.md ]; then
-            coverage=$(grep -o '[0-9]*\.[0-9]*%' coveragereport/Summary.md | head -n 1)
-            echo "::notice title=Code Coverage::Cobertura total: ${coverage}"
-            if [[ ${coverage%\%} < 80 ]]; then
-              echo "::warning::La cobertura está por debajo del 80%"
-            fi
+            total=$(grep -o 'Line coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
+            branch=$(grep -o 'Branch coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
+            method=$(grep -o 'Method coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
+            echo "::notice title=Coverage Results::Line Coverage: ${total}, Branch Coverage: ${branch}, Method Coverage: ${method}"
           fi
 
   bdd:
@@ -272,11 +271,11 @@ jobs:
           echo "::notice title=BDD Tests::Features.Register"
           echo "::notice title=BDD Tests::Features.PDFGeneration"
           echo "::notice title=BDD Tests::Features.UserManagement"
-      - name: Extract BDD Metrics
+      - name: Extract BDD Results
         run: |
-          total_features=$(grep -r "Feature:" . | wc -l)
-          total_scenarios=$(grep -r "Scenario:" . | wc -l)
-          echo "::notice title=BDD Metrics::Features totales: ${total_features}, Escenarios totales: ${total_scenarios}"
+          passed=$(grep -r "passed" TestExecution.json | wc -l)
+          failed=$(grep -r "failed" TestExecution.json | wc -l)
+          echo "::notice title=BDD Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
 
   ui-tests:
     name: Interface Tests
@@ -331,6 +330,12 @@ jobs:
         run: |
           echo "::notice title=UI Test Names::Subscription Tests, Login Tests, Navigation Tests"
           echo "::notice title=UI Test Location::Tests executed in NegocioPDF.Tests/UITests/"
+      - name: Extract UI Test Results
+        if: always()
+        run: |
+          passed=$(find PROYECTO_PDF/NegocioPDF.Tests/TestResults -name "*.trx" -exec grep -l "outcome=\"Passed\"" {} \; | wc -l)
+          failed=$(find PROYECTO_PDF/NegocioPDF.Tests/TestResults -name "*.trx" -exec grep -l "outcome=\"Failed\"" {} \; | wc -l)
+          echo "::notice title=UI Test Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
 
       - name: Upload Test Artifacts
         if: always()
@@ -362,6 +367,14 @@ jobs:
           cd PROYECTO_PDF/NegocioPDF.Tests
           dotnet build
           dotnet stryker -tp "net8.0" || true
+      - name: Extract Mutation Results
+        run: |
+          if [ -f PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json ]; then
+            score=$(jq '.metrics.mutation_score' PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json)
+            killed=$(jq '.metrics.killed' PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json)
+            survived=$(jq '.metrics.survived' PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json)
+            echo "::notice title=Mutation Results::Score: ${score}%, Killed Mutants: ${killed}, Survived Mutants: ${survived}"
+          fi
       - name: Add Mutation Test Names
         run: |
           echo "::notice title=Mutation Tests::NegocioPDF.UserService"
