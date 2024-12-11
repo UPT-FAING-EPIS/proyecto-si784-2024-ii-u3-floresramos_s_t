@@ -208,7 +208,13 @@ jobs:
           reports: '**/PROYECTO_PDF/**/coverage.cobertura.xml'
           targetdir: coveragereport
           reporttypes: MarkdownSummary;MarkdownAssembliesSummary;MarkdownSummaryGithub
-          
+
+      - name: Add Coverage Test Names
+        run: |
+          echo "::notice title=Coverage Tests::NegocioPDF.Tests.UserServiceTests"
+          echo "::notice title=Coverage Tests::NegocioPDF.Tests.PDFServiceTests"
+          echo "::notice title=Coverage Tests::NegocioPDF.Tests.LoginServiceTests"
+          echo "::notice title=Coverage Tests::NegocioPDF.Tests.RegisterServiceTests"
       - name: Publicar Reporte de Cobertura
         run: |
           mkdir -p reports/coverage
@@ -260,7 +266,12 @@ jobs:
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ./reports/bdd/PDFTests.html
           echo "::notice title=BDD Features::Generando reporte de Features: Login, Registro, Generación PDF"
-      
+      - name: Add BDD Test Names
+        run: |
+          echo "::notice title=BDD Tests::Features.Login"
+          echo "::notice title=BDD Tests::Features.Register"
+          echo "::notice title=BDD Tests::Features.PDFGeneration"
+          echo "::notice title=BDD Tests::Features.UserManagement"
       - name: Extract BDD Metrics
         run: |
           total_features=$(grep -r "Feature:" . | wc -l)
@@ -309,7 +320,12 @@ jobs:
           cd PROYECTO_PDF/NegocioPDF.Tests
           echo "::notice title=UI Test Execution::Ejecutando pruebas: Login, Navigation, PDF Generation"
           xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" dotnet test --filter "FullyQualifiedName~UITests"
-
+      - name: Add Interface Test Names
+        run: |
+          echo "::notice title=UI Tests::UITests.LoginTests"
+          echo "::notice title=UI Tests::UITests.RegisterTests"
+          echo "::notice title=UI Tests::UITests.NavigationTests"
+          echo "::notice title=UI Tests::UITests.PDFGenerationTests"
       - name: Process Test Results
         if: always()
         run: |
@@ -346,7 +362,12 @@ jobs:
           cd PROYECTO_PDF/NegocioPDF.Tests
           dotnet build
           dotnet stryker -tp "net8.0" || true
-          
+      - name: Add Mutation Test Names
+        run: |
+          echo "::notice title=Mutation Tests::NegocioPDF.UserService"
+          echo "::notice title=Mutation Tests::NegocioPDF.PDFService"
+          echo "::notice title=Mutation Tests::NegocioPDF.LoginService"
+          echo "::notice title=Mutation Tests::NegocioPDF.RegisterService"    
       - name: Prepare Mutation Report
         run: |
           mkdir -p reports/mutation
