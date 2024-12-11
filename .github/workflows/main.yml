@@ -16,22 +16,22 @@ env:
   DOTNET_VERSION: '8.0.x'
 
 jobs:
-  security-analysis:
-    name: Security Scanning
+  generate-and-publish:
+    name: Generate Reports and Publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      # Semgrep
+      # Semgrep Analysis
       - name: Run Semgrep
         run: |
           docker pull semgrep/semgrep
-          docker run --rm -v $(pwd):/src semgrep/semgrep semgrep scan --config="p/default" --json --output semgrep-results.json
+          mkdir -p reports/security
+          docker run --rm -v $(pwd):/src semgrep/semgrep semgrep scan --config="p/default" --json --output reports/security/semgrep-results.json
       
-      # Snyk
+      # Snyk Analysis
       - uses: snyk/actions/setup@master
-      
-      - name: Set up .NET version
+      - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -41,32 +41,12 @@ jobs:
 
       - name: Run Snyk test
         run: |
-          snyk code test --json | snyk-to-html -o snyk-report.html
-          echo "::notice title=Snyk::Análisis de Snyk completado"
+          mkdir -p reports/security
+          snyk code test --json | snyk-to-html -o reports/security/snyk-report.html
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      # Save artifacts for later use
-      - name: Upload Security Reports
-        uses: actions/upload-artifact@v3
-        with:
-          name: security-reports
-          path: |
-            semgrep-results.json
-            snyk-report.html
-          retention-days: 1
-
-  bdd:
-    name: BDD Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-          
+      # BDD Tests
       - name: Restore dependencies
         run: |
           cd PROYECTO_PDF
@@ -80,51 +60,21 @@ jobs:
       - name: Run BDD Tests
         run: |
           cd PROYECTO_PDF
-          dotnet test --filter "Category=BDD" --no-build --verbosity normal --logger "trx;LogFileName=bdd-results.trx"
+          dotnet test --filter "Category=BDD" --no-build --verbosity normal
       
       - name: Install SpecFlow Plus LivingDoc
         run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
       
       - name: Generate BDD Report
         run: |
+          mkdir -p reports/bdd
           cd PROYECTO_PDF
-          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o bdd-report.html
+          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
 
-      # Save artifacts for later use
-      - name: Upload BDD Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: bdd-report
-          path: PROYECTO_PDF/bdd-report.html
-          retention-days: 1
-
-  publish-dashboard:
-    needs: [security-analysis, bdd]
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      # Download all reports
-      - name: Download Security Reports
-        uses: actions/download-artifact@v3
-        with:
-          name: security-reports
-          path: reports/security
-
-      - name: Download BDD Report
-        uses: actions/download-artifact@v3
-        with:
-          name: bdd-report
-          path: reports/bdd
-
-      - name: Prepare Dashboard
+      # Create main dashboard
+      - name: Create Dashboard
         run: |
-          mkdir -p _site
-          cat > _site/index.html << 'EOF'
+          cat > reports/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
@@ -181,35 +131,25 @@ jobs:
             <div class="card">
               <h2>Security Analysis</h2>
               <div class="report-links">
-                <a href="./reports/security/semgrep-results.json">Semgrep Report</a>
-                <a href="./reports/security/snyk-report.html">Snyk Report</a>
+                <a href="security/semgrep-results.json">Semgrep Report</a>
+                <a href="security/snyk-report.html">Snyk Report</a>
               </div>
             </div>
             
             <div class="card">
               <h2>BDD Test Results</h2>
-              <a href="./reports/bdd/bdd-report.html">View BDD Test Report</a>
+              <a href="bdd/bdd-report.html">View BDD Test Report</a>
             </div>
           </body>
           </html>
           EOF
 
-      # Copy reports to the _site directory
-      - name: Copy Reports
-        run: |
-          mkdir -p _site/reports/security
-          mkdir -p _site/reports/bdd
-          cp -r reports/security/* _site/reports/security/
-          cp -r reports/bdd/* _site/reports/bdd/
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: '_site'
-
+      # Deploy to gh-pages
       - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./reports
+          force_orphan: true
         id: deployment
         uses: actions/deploy-pages@v3
