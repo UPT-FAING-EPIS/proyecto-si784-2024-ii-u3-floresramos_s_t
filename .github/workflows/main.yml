@@ -16,6 +16,76 @@ env:
   DOTNET_VERSION: '8.0.x'
 
 jobs:
+  security-analysis:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Semgrep
+      - name: Run Semgrep
+        run: |
+          docker pull semgrep/semgrep
+          docker run --rm -v $(pwd):/src semgrep/semgrep semgrep scan --config="p/default" --json --output semgrep.json
+      
+      # Snyk
+      - uses: snyk/actions/setup@master
+      - name: Run Snyk
+        run: snyk code test --json > snyk.json || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      
+      # Generar reportes HTML
+      - name: Generate HTML Reports
+        run: |
+          mkdir -p reports/security
+          python -m pip install prospector2html
+          npm install -g snyk-to-html
+          prospector-html --input semgrep.json --output reports/security/semgrep.html
+          snyk-to-html -i snyk.json -o reports/security/snyk.html
+          echo "<html><body><h1>Security Reports</h1><ul><li><a href='semgrep.html'>Semgrep Report</a></li><li><a href='snyk.html'>Snyk Report</a></li></ul></body></html>" > reports/security/index.html
+
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu'
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~\sonar\cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Cache SonarQube scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: .\.sonar\scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+      - name: Install SonarQube scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          New-Item -Path .\.sonar\scanner -ItemType Directory
+          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+      - name: Build and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: powershell
+        run: |
+          .\.sonar\scanner\dotnet-sonarscanner begin /k:"mario-flores_proyectopdf" /o:"mario-flores" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+          dotnet build
+          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
   tests:
     name: Tests & Coverage
     runs-on: ubuntu-latest
@@ -35,7 +105,7 @@ jobs:
       - name: Ejecutar pruebas
         run: |
           cd PROYECTO_PDF
-          dotnet test --collect:"XPlat Code Coverage"
+          dotnet test --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage"
           
       - name: ReportGenerator
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.7
@@ -50,7 +120,6 @@ jobs:
           cp coveragereport/* reports/coverage/ || true
           echo "::notice title=Coverage Report::El reporte de cobertura ha sido generado"
           
-      # Extract coverage metrics for annotation
       - name: Extraer Métricas de Cobertura
         run: |
           if [ -f coveragereport/Summary.md ]; then
@@ -60,6 +129,107 @@ jobs:
               echo "::warning::La cobertura está por debajo del 80%"
             fi
           fi
+
+  bdd:
+    name: BDD Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          
+      - name: Restore dependencies
+        run: |
+          cd PROYECTO_PDF
+          dotnet restore
+      
+      - name: Build
+        run: |
+          cd PROYECTO_PDF
+          dotnet build --no-restore
+      
+      - name: Run BDD Tests
+        run: |
+          cd PROYECTO_PDF
+          dotnet test --filter "Category=BDD" --no-build --verbosity normal
+          echo "::notice title=BDD Tests::Ejecutando pruebas BDD"
+      
+      - name: Install SpecFlow Plus LivingDoc
+        run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
+      
+      - name: Generate BDD Report
+        run: |
+          cd PROYECTO_PDF
+          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ./reports/bdd/PDFTests.html
+          echo "::notice title=BDD Features::Generando reporte de Features: Login, Registro, Generación PDF"
+      
+      - name: Extract BDD Metrics
+        run: |
+          total_features=$(grep -r "Feature:" . | wc -l)
+          total_scenarios=$(grep -r "Scenario:" . | wc -l)
+          echo "::notice title=BDD Metrics::Features totales: ${total_features}, Escenarios totales: ${total_scenarios}"
+
+  ui-tests:
+    name: Interface Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright Dependencies
+        run: |
+          npm init -y
+          npm install -D @playwright/test
+          npx playwright install --with-deps chromium
+          echo "::notice title=UI Setup::Playwright instalado correctamente"
+
+      - name: Restore .NET dependencies
+        run: |
+          cd PROYECTO_PDF
+          dotnet restore
+          echo "::notice title=UI Tests::Preparando pruebas de interfaz"
+
+      - name: Start Application
+        run: |
+          cd PROYECTO_PDF
+          dotnet run --project "PROYECTOPDF/PROYECTOPDF.csproj" --urls http://localhost:5260 &
+          echo "Waiting for application to start..."
+          sleep 15
+          echo "::notice title=UI Application::Aplicación iniciada en puerto 5260"
+
+      - name: Run UI Tests with Xvfb
+        run: |
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          echo "::notice title=UI Test Execution::Ejecutando pruebas: Login, Navigation, PDF Generation"
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" dotnet test --filter "FullyQualifiedName~UITests"
+
+      - name: Process Test Results
+        if: always()
+        run: |
+          echo "::notice title=UI Test Names::Subscription Tests, Login Tests, Navigation Tests"
+          echo "::notice title=UI Test Location::Tests executed in NegocioPDF.Tests/UITests/"
+
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ui-test-results
+          path: |
+            PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/videos/
+            PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/*.png
+          retention-days: 14
 
   mutation:
     name: Mutation Testing
@@ -74,7 +244,6 @@ jobs:
           cd PROYECTO_PDF/NegocioPDF.Tests
           dotnet stryker > stryker_output.txt
           
-          # Extraer y anotar métricas de mutación
           mutation_score=$(grep "The mutation score is" stryker_output.txt | grep -oP '\d+\.\d+')
           killed_mutants=$(grep "killed" stryker_output.txt | grep -oP '\d+(?= mutants were killed)')
           survived_mutants=$(grep "survived" stryker_output.txt | grep -oP '\d+(?= mutants survived)')
@@ -92,7 +261,7 @@ jobs:
           cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/* reports/mutation/
 
   publish-dashboard:
-    needs: [tests, mutation]
+    needs: [security-analysis, sonarqube, tests, bdd, ui-tests, mutation]
     runs-on: ubuntu-latest
     steps:
       - name: Prepare Dashboard
@@ -113,8 +282,28 @@ jobs:
             <h1>Testing Results Dashboard</h1>
             
             <div class="card">
+              <h2>Security Analysis</h2>
+              <a href="/reports/security/index.html">Security Reports</a>
+            </div>
+            
+            <div class="card">
+              <h2>SonarQube Analysis</h2>
+              <a href="https://sonarcloud.io/dashboard?id=mario-flores_proyectopdf">SonarQube Dashboard</a>
+            </div>
+            
+            <div class="card">
               <h2>Code Coverage</h2>
-              <a href="/reports/coverage/index.html">Detailed Coverage Report</a>
+              <a href="/reports/coverage/index.html">Coverage Report</a>
+            </div>
+            
+            <div class="card">
+              <h2>BDD Test Results</h2>
+              <a href="/reports/bdd/PDFTests.html">BDD Test Report</a>
+            </div>
+            
+            <div class="card">
+              <h2>UI Test Results</h2>
+              <a href="/ui-test-results">UI Test Artifacts</a>
             </div>
             
             <div class="card">
