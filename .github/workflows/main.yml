@@ -420,37 +420,20 @@ jobs:
           cd PROYECTO_PDF/NegocioPDF.Tests
           dotnet build
           dotnet stryker -tp "net8.0" || true
-      - name: Extract Mutation Results
+       # Añade este paso para asegurarte de que el directorio existe
+      - name: Prepare mutation results directory
         run: |
-          if [ -f PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json ]; then
-            score=$(jq '.metrics.mutation_score' PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json)
-            killed=$(jq '.metrics.killed' PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json)
-            survived=$(jq '.metrics.survived' PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json)
-            echo "::notice title=Mutation Results::Score: ${score}%, Killed Mutants: ${killed}, Survived Mutants: ${survived}"
-          fi
-      - name: Publish Mutation Results in Summary
-        run: |
-          echo "## Mutation Test Results" >> $GITHUB_STEP_SUMMARY
-          if [ -f PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json ]; then
-            echo "* Score: ${score}%" >> $GITHUB_STEP_SUMMARY
-            echo "* Killed Mutants: ${killed}" >> $GITHUB_STEP_SUMMARY
-            echo "* Survived Mutants: ${survived}" >> $GITHUB_STEP_SUMMARY
-          fi
-      - name: Add Mutation Test Names
-        run: |
-          echo "::notice title=Mutation Tests::NegocioPDF.UserService"
-          echo "::notice title=Mutation Tests::NegocioPDF.PDFService"
-          echo "::notice title=Mutation Tests::NegocioPDF.LoginService"
-          echo "::notice title=Mutation Tests::NegocioPDF.RegisterService"    
-      - name: Prepare Mutation Report
-        run: |
-          mkdir -p reports/mutation
-          cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/* reports/mutation/ || true
+          mkdir -p mutation-results
+          cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/* mutation-results/ || true
+          
+      # Modifica el upload-artifact para usar el nuevo directorio
       - name: Upload mutation results
+        if: always()  # Esto asegura que se suban los resultados incluso si hay fallos
         uses: actions/upload-artifact@v3
         with:
           name: mutation-results
-          path: PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput
+          path: mutation-results
+          retention-days: 1
 
   publish-dashboard:
       needs: [security-analysis, sonarqube, tests, bdd, ui-tests, mutation]
