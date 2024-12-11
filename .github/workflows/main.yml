@@ -22,12 +22,128 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Semgrep Analysis
+      # Semgrep Analysis with HTML report
       - name: Run Semgrep
         run: |
           docker pull semgrep/semgrep
           mkdir -p reports/security
+          # Generar reporte JSON
           docker run --rm -v $(pwd):/src semgrep/semgrep semgrep scan --config="p/default" --json --output reports/security/semgrep-results.json
+          # Convertir JSON a HTML
+          cat > reports/security/semgrep-report.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Semgrep Security Analysis Report</title>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      line-height: 1.6;
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      padding: 20px;
+                      background-color: #f5f5f5;
+                  }
+                  .header {
+                      background-color: #2196F3;
+                      color: white;
+                      padding: 20px;
+                      border-radius: 8px;
+                      margin-bottom: 20px;
+                  }
+                  .finding {
+                      background-color: white;
+                      border-radius: 8px;
+                      padding: 20px;
+                      margin-bottom: 20px;
+                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                  }
+                  .severity-high {
+                      border-left: 5px solid #ff4444;
+                  }
+                  .severity-medium {
+                      border-left: 5px solid #ffbb33;
+                  }
+                  .severity-low {
+                      border-left: 5px solid #00C851;
+                  }
+                  .severity-tag {
+                      display: inline-block;
+                      padding: 5px 10px;
+                      border-radius: 4px;
+                      color: white;
+                      font-weight: bold;
+                      margin-right: 10px;
+                  }
+                  .high { background-color: #ff4444; }
+                  .medium { background-color: #ffbb33; }
+                  .low { background-color: #00C851; }
+                  pre {
+                      background-color: #f8f9fa;
+                      padding: 15px;
+                      border-radius: 4px;
+                      overflow-x: auto;
+                  }
+                  .file-path {
+                      color: #666;
+                      font-family: monospace;
+                      margin-bottom: 10px;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>Semgrep Security Analysis Report</h1>
+                  <p>Generated on <span id="date"></span></p>
+              </div>
+              <div id="findings"></div>
+
+              <script>
+                  // Obtener la fecha actual
+                  document.getElementById('date').textContent = new Date().toLocaleDateString();
+
+                  // Cargar y procesar el JSON
+                  fetch('semgrep-results.json')
+                      .then(response => response.json())
+                      .then(data => {
+                          const findingsDiv = document.getElementById('findings');
+                          if (data.results && data.results.length > 0) {
+                              data.results.forEach(result => {
+                                  const findingDiv = document.createElement('div');
+                                  findingDiv.className = 'finding severity-' + (result.extra.severity || 'medium').toLowerCase();
+                                  
+                                  const severityTag = document.createElement('span');
+                                  severityTag.className = 'severity-tag ' + (result.extra.severity || 'medium').toLowerCase();
+                                  severityTag.textContent = result.extra.severity || 'Medium';
+                                  
+                                  const content = `
+                                      <h3>${result.check_id}</h3>
+                                      ${severityTag.outerHTML}
+                                      <p><strong>Message:</strong> ${result.extra.message}</p>
+                                      <div class="file-path">
+                                          <strong>File:</strong> ${result.path}:${result.start.line}
+                                      </div>
+                                      <pre><code>${result.extra.lines}</code></pre>
+                                      ${result.extra.fix ? `<p><strong>Suggested Fix:</strong> ${result.extra.fix}</p>` : ''}
+                                  `;
+                                  
+                                  findingDiv.innerHTML = content;
+                                  findingsDiv.appendChild(findingDiv);
+                              });
+                          } else {
+                              findingsDiv.innerHTML = '<div class="finding"><h3>No security issues found</h3><p>Great job! No vulnerabilities were detected in the scan.</p></div>';
+                          }
+                      })
+                      .catch(error => {
+                          document.getElementById('findings').innerHTML = `<div class="finding severity-high">
+                              <h3>Error Loading Results</h3>
+                              <p>There was an error loading the scan results: ${error.message}</p>
+                          </div>`;
+                      });
+              </script>
+          </body>
+          </html>
+          EOF
       
       # Snyk Analysis
       - uses: snyk/actions/setup@master
@@ -131,7 +247,7 @@ jobs:
             <div class="card">
               <h2>Security Analysis</h2>
               <div class="report-links">
-                <a href="security/semgrep-results.json">Semgrep Report</a>
+                <a href="security/semgrep-report.html">Semgrep Report</a>
                 <a href="security/snyk-report.html">Snyk Report</a>
               </div>
             </div>
