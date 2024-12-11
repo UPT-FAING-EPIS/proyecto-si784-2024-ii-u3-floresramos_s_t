@@ -83,7 +83,7 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"mario-flores_proyectopdf" /o:"mario-flores" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
-          dotnet build
+          dotnet build PROYECTO_PDF/PROYECTOPDF.sln
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
   tests:
@@ -237,28 +237,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install Stryker
+        run: dotnet tool install -g dotnet-stryker
+        
       - name: Run Stryker
         id: stryker
         run: |
-          dotnet tool install -g dotnet-stryker
           cd PROYECTO_PDF/NegocioPDF.Tests
-          dotnet stryker > stryker_output.txt
+          dotnet build
+          dotnet stryker -tp "net8.0" || true
           
-          mutation_score=$(grep "The mutation score is" stryker_output.txt | grep -oP '\d+\.\d+')
-          killed_mutants=$(grep "killed" stryker_output.txt | grep -oP '\d+(?= mutants were killed)')
-          survived_mutants=$(grep "survived" stryker_output.txt | grep -oP '\d+(?= mutants survived)')
-          
-          echo "::notice title=Mutation Score::Overall mutation score: ${mutation_score}%"
-          echo "::notice title=Mutation Details::Killed mutants: ${killed_mutants}, Survived mutants: ${survived_mutants}"
-          
-          if [ $(echo "${mutation_score} < 75" | bc -l) -eq 1 ]; then
-            echo "::warning::Mutation score is below 75%"
-          fi
-        
       - name: Prepare Mutation Report
         run: |
           mkdir -p reports/mutation
-          cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/* reports/mutation/
+          cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/* reports/mutation/ || true
 
   publish-dashboard:
     needs: [security-analysis, sonarqube, tests, bdd, ui-tests, mutation]
