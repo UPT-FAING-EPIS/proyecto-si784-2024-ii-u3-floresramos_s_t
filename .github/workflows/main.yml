@@ -259,8 +259,7 @@ jobs:
       - name: Run BDD Tests
         run: |
           cd PROYECTO_PDF
-          dotnet test --filter "Category=BDD" --no-build --verbosity normal
-          echo "::notice title=BDD Tests::Ejecutando pruebas BDD"
+          dotnet test --filter "Category=BDD" --no-build --verbosity normal --logger "trx;LogFileName=bdd-results.trx"
       
       - name: Install SpecFlow Plus LivingDoc
         run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
@@ -269,26 +268,33 @@ jobs:
         run: |
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ./reports/bdd/PDFTests.html
-          echo "::notice title=BDD Features::Generando reporte de Features: Login, Registro, Generación PDF"
+
       - name: Publish BDD Results in Summary
         run: |
-          echo "## BDD Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "* Features executed:" >> $GITHUB_STEP_SUMMARY
-          echo "  - Login" >> $GITHUB_STEP_SUMMARY
-          echo "  - Register" >> $GITHUB_STEP_SUMMARY
-          echo "  - PDFGeneration" >> $GITHUB_STEP_SUMMARY
-          echo "  - UserManagement" >> $GITHUB_STEP_SUMMARY
-      - name: Add BDD Test Names
-        run: |
-          echo "::notice title=BDD Tests::Features.Login"
-          echo "::notice title=BDD Tests::Features.Register"
-          echo "::notice title=BDD Tests::Features.PDFGeneration"
-          echo "::notice title=BDD Tests::Features.UserManagement"
+          echo "# BDD Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## Features executed:" >> $GITHUB_STEP_SUMMARY
+          if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
+            # Extraer y mostrar resultados del archivo trx
+            passed=$(grep -o 'outcome="Passed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
+            failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
+            echo "### Results" >> $GITHUB_STEP_SUMMARY
+            echo "* Passed: $passed" >> $GITHUB_STEP_SUMMARY
+            echo "* Failed: $failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "### Features" >> $GITHUB_STEP_SUMMARY
+          echo "* Login" >> $GITHUB_STEP_SUMMARY
+          echo "* Register" >> $GITHUB_STEP_SUMMARY
+          echo "* PDFGeneration" >> $GITHUB_STEP_SUMMARY
+          echo "* UserManagement" >> $GITHUB_STEP_SUMMARY
+
       - name: Extract BDD Results
         run: |
-          passed=$(grep -r "passed" TestExecution.json | wc -l)
-          failed=$(grep -r "failed" TestExecution.json | wc -l)
-          echo "::notice title=BDD Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
+          if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
+            passed=$(grep -o 'outcome="Passed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
+            failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
+            echo "::notice title=BDD Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
+          fi
 
   ui-tests:
     name: Interface Tests
