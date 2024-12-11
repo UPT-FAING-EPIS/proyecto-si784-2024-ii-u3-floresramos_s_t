@@ -260,54 +260,56 @@ jobs:
         run: |
           cd PROYECTO_PDF
           dotnet test --filter "Category=BDD" --no-build --verbosity normal --logger "trx;LogFileName=bdd-results.trx"
-      
-      - name: Install SpecFlow Plus LivingDoc
-        run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
-      
+          
       - name: Generate BDD Report
         run: |
           cd PROYECTO_PDF
-          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ./reports/bdd/PDFTests.html
-
-      - name: Publish BDD Results in Summary
+          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json
+      
+      - name: Extract BDD Results Data
+        id: bdd-results
         run: |
+          cd PROYECTO_PDF/TestResults
           echo "# BDD Test Results" >> $GITHUB_STEP_SUMMARY
           echo "## Features executed:" >> $GITHUB_STEP_SUMMARY
-          if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
-            # Extraer y mostrar resultados del archivo trx
-            passed=$(grep -o 'outcome="Passed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            total=$((passed + failed))
+          
+          # Comprueba la existencia del archivo
+          if [ -f "bdd-results.trx" ]; then
+            # Lee y muestra los resultados
+            echo "### Features" >> $GITHUB_STEP_SUMMARY
+            echo "* Login" >> $GITHUB_STEP_SUMMARY
+            echo "  - Test user can login with valid credentials" >> $GITHUB_STEP_SUMMARY
+            echo "  - Test user cannot login with invalid credentials" >> $GITHUB_STEP_SUMMARY
+            echo "* Register" >> $GITHUB_STEP_SUMMARY
+            echo "  - Test user can register with valid data" >> $GITHUB_STEP_SUMMARY
+            echo "  - Test user cannot register with existing email" >> $GITHUB_STEP_SUMMARY
+            echo "* PDFGeneration" >> $GITHUB_STEP_SUMMARY
+            echo "  - Test PDF can be generated with correct data" >> $GITHUB_STEP_SUMMARY
+            echo "  - Test PDF generation fails with invalid data" >> $GITHUB_STEP_SUMMARY
+            echo "* UserManagement" >> $GITHUB_STEP_SUMMARY
+            echo "  - Test user profile can be updated" >> $GITHUB_STEP_SUMMARY
+            echo "  - Test user account can be deleted" >> $GITHUB_STEP_SUMMARY
             
-            echo "### Overall Results" >> $GITHUB_STEP_SUMMARY
-            echo "* Total Scenarios: $total" >> $GITHUB_STEP_SUMMARY
-            echo "* ✅ Passed: $passed" >> $GITHUB_STEP_SUMMARY
-            echo "* ❌ Failed: $failed" >> $GITHUB_STEP_SUMMARY
+            # Extrae estadísticas
+            passed=$(grep -o 'outcome="Passed"' bdd-results.trx | wc -l)
+            failed=$(grep -o 'outcome="Failed"' bdd-results.trx | wc -l)
             
-            echo "### Features Details" >> $GITHUB_STEP_SUMMARY
-            echo "* Login Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - Successful login scenario" >> $GITHUB_STEP_SUMMARY
-            echo "  - Failed login scenario" >> $GITHUB_STEP_SUMMARY
+            echo "### Results Summary" >> $GITHUB_STEP_SUMMARY
+            echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ Passed | $passed |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ Failed | $failed |" >> $GITHUB_STEP_SUMMARY
             
-            echo "* Register Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - New user registration" >> $GITHUB_STEP_SUMMARY
-            echo "  - Duplicate user registration" >> $GITHUB_STEP_SUMMARY
-            
-            echo "* PDFGeneration Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - Generate PDF with valid data" >> $GITHUB_STEP_SUMMARY
-            echo "  - Generate PDF with invalid data" >> $GITHUB_STEP_SUMMARY
-            
-            echo "* UserManagement Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - Update user profile" >> $GITHUB_STEP_SUMMARY
-            echo "  - Delete user account" >> $GITHUB_STEP_SUMMARY
+            # Guarda los resultados para usar en otros pasos
+            echo "passed=$passed" >> $GITHUB_OUTPUT
+            echo "failed=$failed" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ No se encontró el archivo de resultados BDD" >> $GITHUB_STEP_SUMMARY
           fi
-      - name: Extract BDD Results
+      
+      - name: Add BDD Notice
         run: |
-          if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
-            passed=$(grep -o 'outcome="Passed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            echo "::notice title=BDD Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
-          fi
+          echo "::notice title=BDD Test Summary::Passed: ${{ steps.bdd-results.outputs.passed }}, Failed: ${{ steps.bdd-results.outputs.failed }}"
 
   ui-tests:
     name: Interface Tests
