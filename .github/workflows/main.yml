@@ -1,0 +1,152 @@
+name: Unified Testing & Analysis Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  tests:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # BDD Tests
+      - name: Run BDD Tests
+        id: bdd
+        run: |
+          cd PROYECTO_PDF
+          dotnet test --filter "Category=BDD" --collect:"XPlat Code Coverage" || exit_code=$?
+          echo "::notice title=BDD Tests::Executed BDD Tests: LoginFeature, RegisterFeature, PDFGenerationFeature"
+          echo "exit_code=${exit_code}" >> $GITHUB_OUTPUT
+          
+      # Coverage Report
+      - name: Generate Coverage Report
+        id: coverage
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          reportgenerator "-reports:**/coverage.cobertura.xml" "-targetdir:reports/coverage" -reporttypes:Html
+          coverage_percentage=$(grep -oP 'line-rate="\K[^"]+' **/coverage.cobertura.xml | awk '{print $1 * 100}')
+          echo "::notice title=Code Coverage::Overall coverage: ${coverage_percentage}%"
+          if [ $(echo "${coverage_percentage} < 80" | bc -l) -eq 1 ]; then
+            echo "::warning::Code coverage is below 80%"
+          fi
+          
+      # BDD Report with Feature Details
+      - name: Generate BDD Report
+        run: |
+          dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
+          cd PROYECTO_PDF
+          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/index.html
+          
+          # Extraer y anotar información de escenarios
+          echo "::notice title=BDD Scenarios::$(grep -r "Scenario:" . | wc -l) scenarios executed across all features"
+
+  mutation:
+    name: Mutation Testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Stryker
+        id: stryker
+        run: |
+          dotnet tool install -g dotnet-stryker
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          dotnet stryker > stryker_output.txt
+          
+          # Extraer y anotar métricas de mutación
+          mutation_score=$(grep "The mutation score is" stryker_output.txt | grep -oP '\d+\.\d+')
+          killed_mutants=$(grep "killed" stryker_output.txt | grep -oP '\d+(?= mutants were killed)')
+          survived_mutants=$(grep "survived" stryker_output.txt | grep -oP '\d+(?= mutants survived)')
+          
+          echo "::notice title=Mutation Score::Overall mutation score: ${mutation_score}%"
+          echo "::notice title=Mutation Details::Killed mutants: ${killed_mutants}, Survived mutants: ${survived_mutants}"
+          
+          if [ $(echo "${mutation_score} < 75" | bc -l) -eq 1 ]; then
+            echo "::warning::Mutation score is below 75%"
+          fi
+        
+      - name: Prepare Mutation Report
+        run: |
+          mkdir -p reports/mutation
+          cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/* reports/mutation/
+
+  coverage-matrix:
+    name: Cross-Platform Coverage
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Tests with Coverage
+        id: platform-coverage
+        run: |
+          dotnet test PROYECTO_PDF/NegocioPDF.Tests/NegocioPDF.Tests.csproj --collect:"XPlat Code Coverage"
+          
+          # Extraer y anotar cobertura por plataforma
+          coverage=$(grep -oP 'line-rate="\K[^"]+' **/coverage.cobertura.xml | awk '{print $1 * 100}')
+          echo "::notice title=Platform Coverage (${{ matrix.os }})::Coverage: ${coverage}%"
+          
+          # Anotar diferencias significativas entre plataformas
+          if [ $(echo "${coverage} < 75" | bc -l) -eq 1 ]; then
+            echo "::warning::Coverage on ${{ matrix.os }} is below 75%"
+          fi
+
+  publish-dashboard:
+    needs: [tests, mutation, coverage-matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare Dashboard
+        run: |
+          mkdir -p dashboard
+          cat > dashboard/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Testing Results Dashboard</title>
+            <style>
+              body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding: 20px; }
+              .card { border: 1px solid #ddd; padding: 20px; margin: 10px; border-radius: 8px; }
+              .metric { font-size: 24px; color: #2196F3; }
+            </style>
+          </head>
+          <body>
+            <h1>Testing Results Dashboard</h1>
+            
+            <div class="card">
+              <h2>Code Coverage</h2>
+              <a href="/reports/coverage/index.html">Detailed Coverage Report</a>
+            </div>
+            
+            <div class="card">
+              <h2>BDD Test Results</h2>
+              <a href="/reports/bdd/index.html">BDD Test Report</a>
+            </div>
+            
+            <div class="card">
+              <h2>Mutation Testing</h2>
+              <a href="/reports/mutation/index.html">Mutation Test Report</a>
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dashboard
