@@ -31,42 +31,48 @@ jobs:
       # Snyk
       - uses: snyk/actions/setup@master
       
-      - name: Run Snyk Code Analysis
+      - name: Set up .NET version
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install snyk-to-html
+        run: npm install -g snyk-to-html
+
+      - name: Run Snyk test
         run: |
           mkdir -p reports/security
-          snyk code test --json | tee snyk-code-results.json || true
-          echo "<html><head><title>Security Report</title></head><body>" > reports/security/index.html
+          snyk code test --json | snyk-to-html -o reports/security/snyk-report.html
+          echo "::notice title=Snyk::Análisis de Snyk completado"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      
-      - name: Generate HTML Report
+
+      # Generar página de índice para ambos reportes
+      - name: Prepare Security Reports Index
         run: |
-          if [ -f snyk-code-results.json ]; then
-            snyk-to-html -i snyk-code-results.json -o reports/security/snyk-report.html || true
-            echo "<h2>Security Analysis Results</h2><a href='snyk-report.html'>View Detailed Report</a>" >> reports/security/index.html
-          else
-            echo "<h2>No security issues found</h2>" >> reports/security/index.html
-          fi
-          echo "</body></html>" >> reports/security/index.html
-        
-      - name: Add Security Annotation
-        run: |
-          if [ -f snyk-code-results.json ]; then
-            issues=$(cat snyk-code-results.json | grep -o '"issueType":' | wc -l)
-            echo "::notice title=Security Scan::Found ${issues} potential security issues"
-          else
-            echo "::notice title=Security Scan::No security issues found"
-          fi
-      
-      # Generar reportes HTML
-      - name: Generate HTML Reports
-        run: |
-          mkdir -p reports/security
-          python -m pip install prospector2html
-          npm install -g snyk-to-html
-          prospector-html --input semgrep.json --output reports/security/semgrep.html
-          snyk-to-html -i snyk.json -o reports/security/snyk.html
-          echo "<html><body><h1>Security Reports</h1><ul><li><a href='semgrep.html'>Semgrep Report</a></li><li><a href='snyk.html'>Snyk Report</a></li></ul></body></html>" > reports/security/index.html
+          cat > reports/security/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Security Analysis Reports</title>
+            <style>
+              body { font-family: Arial; max-width: 800px; margin: 0 auto; padding: 20px; }
+              .report-link { display: block; margin: 10px 0; padding: 10px; background: #f0f0f0; }
+            </style>
+          </head>
+          <body>
+            <h1>Security Analysis Reports</h1>
+            <div class="report-link">
+              <h2>Semgrep Analysis</h2>
+              <a href="semgrep-results.json">View Semgrep Results</a>
+            </div>
+            <div class="report-link">
+              <h2>Snyk Analysis</h2>
+              <a href="snyk-report.html">View Snyk Report</a>
+            </div>
+          </body>
+          </html>
+          EOF
 
   sonarqube:
     name: SonarQube Analysis
