@@ -208,6 +208,11 @@ jobs:
           reports: '**/PROYECTO_PDF/**/coverage.cobertura.xml'
           targetdir: coveragereport
           reporttypes: MarkdownSummary;MarkdownAssembliesSummary;MarkdownSummaryGithub
+      - name: Publish coverage in build summary
+        run: |
+          echo "## Coverage Results" >> $GITHUB_STEP_SUMMARY
+          cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+        shell: bash
 
       - name: Add Coverage Test Names
         run: |
@@ -265,6 +270,14 @@ jobs:
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ./reports/bdd/PDFTests.html
           echo "::notice title=BDD Features::Generando reporte de Features: Login, Registro, Generación PDF"
+      - name: Publish BDD Results in Summary
+        run: |
+          echo "## BDD Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "* Features executed:" >> $GITHUB_STEP_SUMMARY
+          echo "  - Login" >> $GITHUB_STEP_SUMMARY
+          echo "  - Register" >> $GITHUB_STEP_SUMMARY
+          echo "  - PDFGeneration" >> $GITHUB_STEP_SUMMARY
+          echo "  - UserManagement" >> $GITHUB_STEP_SUMMARY
       - name: Add BDD Test Names
         run: |
           echo "::notice title=BDD Tests::Features.Login"
@@ -336,7 +349,18 @@ jobs:
           passed=$(find PROYECTO_PDF/NegocioPDF.Tests/TestResults -name "*.trx" -exec grep -l "outcome=\"Passed\"" {} \; | wc -l)
           failed=$(find PROYECTO_PDF/NegocioPDF.Tests/TestResults -name "*.trx" -exec grep -l "outcome=\"Failed\"" {} \; | wc -l)
           echo "::notice title=UI Test Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
-
+      - name: Publish UI Test Results in Summary
+        if: always()
+        run: |
+          echo "## UI Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "* Tests Executed:" >> $GITHUB_STEP_SUMMARY
+          echo "  - LoginTests" >> $GITHUB_STEP_SUMMARY
+          echo "  - RegisterTests" >> $GITHUB_STEP_SUMMARY
+          echo "  - NavigationTests" >> $GITHUB_STEP_SUMMARY
+          echo "  - PDFGenerationTests" >> $GITHUB_STEP_SUMMARY
+          echo "* Results:" >> $GITHUB_STEP_SUMMARY
+          echo "  - Passed: ${passed}" >> $GITHUB_STEP_SUMMARY
+          echo "  - Failed: ${failed}" >> $GITHUB_STEP_SUMMARY
       - name: Upload Test Artifacts
         if: always()
         uses: actions/upload-artifact@v3
@@ -374,6 +398,14 @@ jobs:
             killed=$(jq '.metrics.killed' PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json)
             survived=$(jq '.metrics.survived' PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json)
             echo "::notice title=Mutation Results::Score: ${score}%, Killed Mutants: ${killed}, Survived Mutants: ${survived}"
+          fi
+      - name: Publish Mutation Results in Summary
+        run: |
+          echo "## Mutation Test Results" >> $GITHUB_STEP_SUMMARY
+          if [ -f PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/mutation-report.json ]; then
+            echo "* Score: ${score}%" >> $GITHUB_STEP_SUMMARY
+            echo "* Killed Mutants: ${killed}" >> $GITHUB_STEP_SUMMARY
+            echo "* Survived Mutants: ${survived}" >> $GITHUB_STEP_SUMMARY
           fi
       - name: Add Mutation Test Names
         run: |
