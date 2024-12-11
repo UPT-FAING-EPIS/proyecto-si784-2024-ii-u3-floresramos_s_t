@@ -22,135 +22,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Semgrep Analysis with HTML Report
-      - name: Run Semgrep and Generate HTML
+      # Semgrep Analysis
+      - name: Run Semgrep
         run: |
           docker pull semgrep/semgrep
           mkdir -p reports/security
-          
-          # Crear archivo de estilo para el reporte HTML
-          cat > semgrep-style.css << 'EOF'
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-          }
-          .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .finding {
-            border: 1px solid #ddd;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 4px;
-          }
-          .finding.critical { border-left: 5px solid #dc3545; }
-          .finding.high { border-left: 5px solid #fd7e14; }
-          .finding.medium { border-left: 5px solid #ffc107; }
-          .finding.low { border-left: 5px solid #20c997; }
-          .finding h3 {
-            margin-top: 0;
-            color: #333;
-          }
-          .meta {
-            font-size: 0.9em;
-            color: #666;
-            margin: 5px 0;
-          }
-          .code {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: monospace;
-            white-space: pre-wrap;
-          }
-          .severity {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            color: white;
-            font-weight: bold;
-          }
-          .severity.critical { background-color: #dc3545; }
-          .severity.high { background-color: #fd7e14; }
-          .severity.medium { background-color: #ffc107; color: black; }
-          .severity.low { background-color: #20c997; }
-          EOF
+          docker run --rm -v $(pwd):/src semgrep/semgrep semgrep scan --config="p/default" --json --output reports/security/semgrep.json
 
-          # Ejecutar Semgrep y crear reporte HTML
-          docker run --rm -v $(pwd):/src semgrep/semgrep semgrep scan --config="p/default" --json | \
-          python3 -c '
-import json
-import sys
-import html
+      - name: Install prospector-html
+        run: python -m pip install prospector2html
 
-def severity_class(severity):
-    return severity.lower() if severity else "low"
-
-def create_html(findings):
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Semgrep Security Analysis Report</title>
-        <link rel="stylesheet" type="text/css" href="semgrep-style.css">
-    </head>
-    <body>
-        <div class="container">
-            <h1>Semgrep Security Analysis Report</h1>
-    """
-    
-    # Add summary
-    total = len(findings)
-    by_severity = {}
-    for finding in findings:
-        severity = finding.get("extra", {}).get("severity", "unknown")
-        by_severity[severity] = by_severity.get(severity, 0) + 1
-    
-    html_content += "<div class=\"summary\">"
-    html_content += f"<h2>Summary</h2>"
-    html_content += f"<p>Total findings: {total}</p>"
-    for severity, count in by_severity.items():
-        html_content += f"<p>{severity}: {count}</p>"
-    html_content += "</div>"
-    
-    # Add findings
-    for finding in findings:
-        severity = finding.get("extra", {}).get("severity", "low")
-        html_content += f"""
-        <div class="finding {severity_class(severity)}">
-            <h3>{html.escape(finding.get("check_id", ""))}</h3>
-            <span class="severity {severity_class(severity)}">{severity.upper()}</span>
-            <div class="meta">
-                <p><strong>Path:</strong> {html.escape(finding.get("path", ""))}</p>
-                <p><strong>Line:</strong> {finding.get("start", {}).get("line", "")}</p>
-            </div>
-            <p>{html.escape(finding.get("extra", {}).get("message", ""))}</p>
-            <div class="code">{html.escape(finding.get("extra", {}).get("lines", ""))}</div>
-        </div>
-        """
-    
-    html_content += """
-        </div>
-    </body>
-    </html>
-    """
-    return html_content
-
-data = json.load(sys.stdin)
-findings = data.get("results", [])
-print(create_html(findings))
-          ' > reports/security/semgrep-report.html
-
-          # Copiar el archivo de estilos
-          cp semgrep-style.css reports/security/
+      - name: Convert Semgrep results to HTML
+        run: |
+          cd reports/security
+          prospector-html --input semgrep.json --output semgrep-report.html --filter semgrep || true
       
       # Snyk Analysis
       - uses: snyk/actions/setup@master
@@ -254,7 +139,8 @@ print(create_html(findings))
             <div class="card">
               <h2>Security Analysis</h2>
               <div class="report-links">
-                <a href="security/semgrep-report.html">Semgrep Report</a>
+                <a href="security/semgrep-report.html">Semgrep HTML Report</a>
+                <a href="security/semgrep.json">Semgrep JSON Report</a>
                 <a href="security/snyk-report.html">Snyk Report</a>
               </div>
             </div>
