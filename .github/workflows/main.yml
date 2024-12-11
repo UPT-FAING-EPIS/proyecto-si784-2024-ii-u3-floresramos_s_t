@@ -26,7 +26,7 @@ jobs:
       - name: Run Semgrep
         run: |
           docker pull semgrep/semgrep
-          docker run --rm -v $(pwd):/src semgrep/semgrep semgrep scan --config="p/default" --json --output semgrep.json
+          docker run --rm -v $(pwd):/src semgrep/semgrep semgrep scan --config="p/default" --json --output semgrep-results.json
       
       # Snyk
       - uses: snyk/actions/setup@master
@@ -41,38 +41,20 @@ jobs:
 
       - name: Run Snyk test
         run: |
-          mkdir -p reports/security
-          snyk code test --json | snyk-to-html -o reports/security/snyk-report.html
+          snyk code test --json | snyk-to-html -o snyk-report.html
           echo "::notice title=Snyk::Análisis de Snyk completado"
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # Generate index page for security reports
-      - name: Prepare Security Reports Index
-        run: |
-          cat > reports/security/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Security Analysis Reports</title>
-            <style>
-              body { font-family: Arial; max-width: 800px; margin: 0 auto; padding: 20px; }
-              .report-link { display: block; margin: 10px 0; padding: 10px; background: #f0f0f0; }
-            </style>
-          </head>
-          <body>
-            <h1>Security Analysis Reports</h1>
-            <div class="report-link">
-              <h2>Semgrep Analysis</h2>
-              <a href="semgrep-results.json">View Semgrep Results</a>
-            </div>
-            <div class="report-link">
-              <h2>Snyk Analysis</h2>
-              <a href="snyk-report.html">View Snyk Report</a>
-            </div>
-          </body>
-          </html>
-          EOF
+      # Save artifacts for later use
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            semgrep-results.json
+            snyk-report.html
+          retention-days: 1
 
   bdd:
     name: BDD Tests
@@ -106,24 +88,43 @@ jobs:
       - name: Generate BDD Report
         run: |
           cd PROYECTO_PDF
-          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ./reports/bdd/PDFTests.html
+          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o bdd-report.html
 
-      - name: Extract BDD Results
-        run: |
-          if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
-            passed=$(grep -o 'outcome="Passed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            echo "::notice title=BDD Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
-          fi
+      # Save artifacts for later use
+      - name: Upload BDD Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: bdd-report
+          path: PROYECTO_PDF/bdd-report.html
+          retention-days: 1
 
   publish-dashboard:
     needs: [security-analysis, bdd]
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Download all reports
+      - name: Download Security Reports
+        uses: actions/download-artifact@v3
+        with:
+          name: security-reports
+          path: reports/security
+
+      - name: Download BDD Report
+        uses: actions/download-artifact@v3
+        with:
+          name: bdd-report
+          path: reports/bdd
+
       - name: Prepare Dashboard
         run: |
-          mkdir -p dashboard
-          cat > dashboard/index.html << 'EOF'
+          mkdir -p _site
+          cat > _site/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
@@ -162,9 +163,15 @@ jobs:
                 text-decoration: none;
                 border-radius: 4px;
                 transition: background-color 0.3s;
+                margin: 5px;
               }
               a:hover {
                 background-color: #1976D2;
+              }
+              .report-links {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
               }
             </style>
           </head>
@@ -174,21 +181,35 @@ jobs:
             <div class="card">
               <h2>Security Analysis</h2>
               <div class="report-links">
-                <a href="/reports/security/semgrep-results.json">Semgrep Report</a>
-                <a href="/reports/security/snyk-report.html">Snyk Report</a>
+                <a href="./reports/security/semgrep-results.json">Semgrep Report</a>
+                <a href="./reports/security/snyk-report.html">Snyk Report</a>
               </div>
             </div>
             
             <div class="card">
               <h2>BDD Test Results</h2>
-              <a href="/reports/bdd/PDFTests.html">View BDD Test Report</a>
+              <a href="./reports/bdd/bdd-report.html">View BDD Test Report</a>
             </div>
           </body>
           </html>
           EOF
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      # Copy reports to the _site directory
+      - name: Copy Reports
+        run: |
+          mkdir -p _site/reports/security
+          mkdir -p _site/reports/bdd
+          cp -r reports/security/* _site/reports/security/
+          cp -r reports/bdd/* _site/reports/bdd/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dashboard
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v3
