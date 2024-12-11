@@ -151,5 +151,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./reports
           force_orphan: true
-        id: deployment
-        uses: actions/deploy-pages@v3
