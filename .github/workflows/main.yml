@@ -31,7 +31,10 @@ jobs:
       # Snyk
       - uses: snyk/actions/setup@master
       - name: Run Snyk
-        run: snyk code test --json > snyk.json || true
+        run: |
+          mkdir -p reports/security
+          snyk test --json | tee snyk-results.json || true
+          snyk-to-html -i snyk-results.json -o reports/security/snyk.html || true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       
