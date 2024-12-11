@@ -30,13 +30,33 @@ jobs:
       
       # Snyk
       - uses: snyk/actions/setup@master
-      - name: Run Snyk
+      
+      - name: Run Snyk Code Analysis
         run: |
           mkdir -p reports/security
-          snyk test --json | tee snyk-results.json || true
-          snyk-to-html -i snyk-results.json -o reports/security/snyk.html || true
+          snyk code test --json | tee snyk-code-results.json || true
+          echo "<html><head><title>Security Report</title></head><body>" > reports/security/index.html
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      
+      - name: Generate HTML Report
+        run: |
+          if [ -f snyk-code-results.json ]; then
+            snyk-to-html -i snyk-code-results.json -o reports/security/snyk-report.html || true
+            echo "<h2>Security Analysis Results</h2><a href='snyk-report.html'>View Detailed Report</a>" >> reports/security/index.html
+          else
+            echo "<h2>No security issues found</h2>" >> reports/security/index.html
+          fi
+          echo "</body></html>" >> reports/security/index.html
+        
+      - name: Add Security Annotation
+        run: |
+          if [ -f snyk-code-results.json ]; then
+            issues=$(cat snyk-code-results.json | grep -o '"issueType":' | wc -l)
+            echo "::notice title=Security Scan::Found ${issues} potential security issues"
+          else
+            echo "::notice title=Security Scan::No security issues found"
+          fi
       
       # Generar reportes HTML
       - name: Generate HTML Reports
