@@ -47,7 +47,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # Generar página de índice para ambos reportes
+      # Generate index page for security reports
       - name: Prepare Security Reports Index
         run: |
           cat > reports/security/index.html << 'EOF'
@@ -73,172 +73,6 @@ jobs:
           </body>
           </html>
           EOF
-
-  sonarqube:
-    name: SonarQube Analysis
-    runs-on: windows-latest
-    steps:
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: 'zulu'
-
-      - name: Set up .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # Limpiar carpetas de Playwright
-      - name: Clean Playwright folders
-        shell: powershell
-        run: |
-          Get-ChildItem -Path . -Directory -Recurse -Filter ".playwright" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~\sonar\cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-      - name: Cache SonarCloud scanner
-        id: cache-sonar-scanner
-        uses: actions/cache@v4
-        with:
-          path: .\.sonar\scanner
-          key: ${{ runner.os }}-sonar-scanner
-          restore-keys: ${{ runner.os }}-sonar-scanner
-
-      - name: Install SonarCloud scanner
-        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
-        shell: powershell
-        run: |
-          New-Item -Path .\.sonar\scanner -ItemType Directory
-          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
-
-      - name: Begin SonarCloud Analysis
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
-        run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin `
-            /k:"mario-flores_proyectopdf" `
-            /o:"mario-flores" `
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
-            /d:sonar.host.url="https://sonarcloud.io" `
-            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" `
-            /d:sonar.coverage.exclusions="**/*Tests*.cs,**/obj/**,**/bin/**" `
-            /d:sonar.exclusions="**/*.js,**/*.css,**/*.html,**/*Tests*.cs,**/obj/**,**/bin/**,**/.playwright/**" `
-            /d:sonar.sources="PROYECTO_PDF/NegocioPDF/**/*.cs" `
-            /d:sonar.tests="PROYECTO_PDF/NegocioPDF.Tests/**/*.cs" `
-            /d:sonar.test.exclusions="**/obj/**,**/bin/**,**/*UITests*/**,**/*SubscriptionTests.cs" `
-            /d:sonar.verbose=true
-
-      # Build y Test específicos
-      - name: Build NegocioPDF
-        shell: powershell
-        run: |
-          dotnet restore PROYECTO_PDF/NegocioPDF/NegocioPDF.csproj --ignore-failed-sources
-          dotnet build PROYECTO_PDF/NegocioPDF/NegocioPDF.csproj --configuration Release --no-restore
-
-      - name: Build Tests (excluding Playwright)
-        shell: powershell
-        run: |
-          dotnet restore PROYECTO_PDF/NegocioPDF.Tests/NegocioPDF.Tests.csproj /p:DisablePlaywright=true
-          dotnet build PROYECTO_PDF/NegocioPDF.Tests/NegocioPDF.Tests.csproj --configuration Release --no-restore
-
-      - name: Run Tests (excluding UI Tests)
-        shell: powershell
-        run: |
-          dotnet test PROYECTO_PDF/NegocioPDF.Tests/NegocioPDF.Tests.csproj `
-            --configuration Release `
-            --no-build `
-            --collect:"XPlat Code Coverage;Format=opencover" `
-            --results-directory TestResults `
-            --logger trx `
-            --verbosity normal `
-            --filter "FullyQualifiedName!~UITests.SubscriptionTests"
-
-      # Limpieza final
-      - name: Clean Playwright folders
-        if: always()
-        shell: powershell
-        run: |
-          Get-ChildItem -Path . -Directory -Recurse -Filter ".playwright" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-
-      - name: End SonarCloud Analysis
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
-        run: |
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
-
-  tests:
-    name: Tests & Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Configurando la versión de NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-          
-      - name: Restaurar los paquetes
-        run: |
-          cd PROYECTO_PDF
-          dotnet restore
-          
-      - name: Ejecutar pruebas
-        run: |
-          cd PROYECTO_PDF
-          dotnet test --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage"
-          
-      - name: ReportGenerator
-        uses: danielpalme/ReportGenerator-GitHub-Action@5.3.7
-        with:
-          reports: '**/PROYECTO_PDF/**/coverage.cobertura.xml'
-          targetdir: coveragereport
-          reporttypes: MarkdownSummary;MarkdownAssembliesSummary;MarkdownSummaryGithub
-      - name: Publish coverage in build summary
-        run: |
-          echo "## Coverage Results" >> $GITHUB_STEP_SUMMARY
-          cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
-        shell: bash
-
-      - name: Add Coverage Test Names
-        run: |
-          echo "::notice title=Coverage Tests::NegocioPDF.Tests.UserServiceTests"
-          echo "::notice title=Coverage Tests::NegocioPDF.Tests.PDFServiceTests"
-          echo "::notice title=Coverage Tests::NegocioPDF.Tests.LoginServiceTests"
-          echo "::notice title=Coverage Tests::NegocioPDF.Tests.RegisterServiceTests"
-      - name: Publicar Reporte de Cobertura
-        run: |
-          mkdir -p reports/coverage
-          cp coveragereport/* reports/coverage/ || true
-          echo "::notice title=Coverage Report::El reporte de cobertura ha sido generado"
-          
-      - name: Extraer Métricas de Cobertura
-        run: |
-          if [ -f coveragereport/Summary.md ]; then
-            total=$(grep -o 'Line coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
-            branch=$(grep -o 'Branch coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
-            method=$(grep -o 'Method coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
-            echo "::notice title=Coverage Results::Line Coverage: ${total}, Branch Coverage: ${branch}, Method Coverage: ${method}"
-          fi
-      - name: Upload coverage results
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-results
-          path: coveragereport
 
   bdd:
     name: BDD Tests
@@ -274,38 +108,6 @@ jobs:
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ./reports/bdd/PDFTests.html
 
-      - name: Publish BDD Results in Summary
-        run: |
-          echo "# BDD Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "## Features executed:" >> $GITHUB_STEP_SUMMARY
-          if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
-            # Extraer y mostrar resultados del archivo trx
-            passed=$(grep -o 'outcome="Passed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            total=$((passed + failed))
-            
-            echo "### Overall Results" >> $GITHUB_STEP_SUMMARY
-            echo "* Total Scenarios: $total" >> $GITHUB_STEP_SUMMARY
-            echo "* ✅ Passed: $passed" >> $GITHUB_STEP_SUMMARY
-            echo "* ❌ Failed: $failed" >> $GITHUB_STEP_SUMMARY
-            
-            echo "### Features Details" >> $GITHUB_STEP_SUMMARY
-            echo "* Login Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - Successful login scenario" >> $GITHUB_STEP_SUMMARY
-            echo "  - Failed login scenario" >> $GITHUB_STEP_SUMMARY
-            
-            echo "* Register Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - New user registration" >> $GITHUB_STEP_SUMMARY
-            echo "  - Duplicate user registration" >> $GITHUB_STEP_SUMMARY
-            
-            echo "* PDFGeneration Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - Generate PDF with valid data" >> $GITHUB_STEP_SUMMARY
-            echo "  - Generate PDF with invalid data" >> $GITHUB_STEP_SUMMARY
-            
-            echo "* UserManagement Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - Update user profile" >> $GITHUB_STEP_SUMMARY
-            echo "  - Delete user account" >> $GITHUB_STEP_SUMMARY
-          fi
       - name: Extract BDD Results
         run: |
           if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
@@ -313,268 +115,80 @@ jobs:
             failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
             echo "::notice title=BDD Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
           fi
-      - name: Upload BDD results
-        uses: actions/upload-artifact@v3
-        with:
-            name: bdd-results
-            path: PROYECTO_PDF/reports/bdd
-
-  ui-tests:
-    name: Interface Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Playwright Dependencies
-        run: |
-          npm init -y
-          npm install -D @playwright/test
-          npx playwright install --with-deps chromium
-          echo "::notice title=UI Setup::Playwright instalado correctamente"
-
-      - name: Restore .NET dependencies
-        run: |
-          cd PROYECTO_PDF
-          dotnet restore
-          echo "::notice title=UI Tests::Preparando pruebas de interfaz"
-
-      - name: Start Application
-        run: |
-          cd PROYECTO_PDF
-          dotnet run --project "PROYECTOPDF/PROYECTOPDF.csproj" --urls http://localhost:5260 &
-          echo "Waiting for application to start..."
-          sleep 15
-          echo "::notice title=UI Application::Aplicación iniciada en puerto 5260"
-
-      - name: Run UI Tests with Xvfb
-        run: |
-          cd PROYECTO_PDF/NegocioPDF.Tests
-          echo "::notice title=UI Test Execution::Ejecutando pruebas: Login, Navigation, PDF Generation"
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" dotnet test --filter "FullyQualifiedName~UITests"
-      - name: Add Interface Test Names
-        run: |
-          echo "::notice title=UI Tests::UITests.LoginTests"
-          echo "::notice title=UI Tests::UITests.RegisterTests"
-          echo "::notice title=UI Tests::UITests.NavigationTests"
-          echo "::notice title=UI Tests::UITests.PDFGenerationTests"
-      - name: Process Test Results
-        if: always()
-        run: |
-          echo "::notice title=UI Test Names::Subscription Tests, Login Tests, Navigation Tests"
-          echo "::notice title=UI Test Location::Tests executed in NegocioPDF.Tests/UITests/"
-      - name: Extract UI Test Results
-        if: always()
-        run: |
-          passed=$(find PROYECTO_PDF/NegocioPDF.Tests/TestResults -name "*.trx" -exec grep -l "outcome=\"Passed\"" {} \; | wc -l)
-          failed=$(find PROYECTO_PDF/NegocioPDF.Tests/TestResults -name "*.trx" -exec grep -l "outcome=\"Failed\"" {} \; | wc -l)
-          echo "::notice title=UI Test Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
-      - name: Publish UI Test Results in Summary
-        if: always()
-        run: |
-          echo "## UI Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "* Tests Executed:" >> $GITHUB_STEP_SUMMARY
-          echo "  - LoginTests" >> $GITHUB_STEP_SUMMARY
-          echo "  - RegisterTests" >> $GITHUB_STEP_SUMMARY
-          echo "  - NavigationTests" >> $GITHUB_STEP_SUMMARY
-          echo "  - PDFGenerationTests" >> $GITHUB_STEP_SUMMARY
-          echo "* Results:" >> $GITHUB_STEP_SUMMARY
-          echo "  - Passed: ${passed}" >> $GITHUB_STEP_SUMMARY
-          echo "  - Failed: ${failed}" >> $GITHUB_STEP_SUMMARY
-      - name: Upload Test Artifacts
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: ui-test-results
-          path: |
-            PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/videos/
-            PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/*.png
-          retention-days: 14
-
-  mutation:
-    name: Mutation Testing
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      
-      - name: Install Stryker
-        run: dotnet tool install -g dotnet-stryker
-        
-      - name: Run Stryker
-        id: stryker
-        run: |
-          cd PROYECTO_PDF/NegocioPDF.Tests
-          dotnet build
-          dotnet stryker -tp "net8.0" || true
-       # Añade este paso para asegurarte de que el directorio existe
-      - name: Prepare mutation results directory
-        run: |
-          mkdir -p mutation-results
-          cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/* mutation-results/ || true
-          
-      # Modifica el upload-artifact para usar el nuevo directorio
-      - name: Upload mutation results
-        if: always()  # Esto asegura que se suban los resultados incluso si hay fallos
-        uses: actions/upload-artifact@v3
-        with:
-          name: mutation-results
-          path: mutation-results
-          retention-days: 1
 
   publish-dashboard:
-      needs: [security-analysis, sonarqube, tests, bdd, ui-tests, mutation]
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        
-        - name: Create dashboard directory
-          run: mkdir -p dashboard
-        
-        - name: Download coverage results
-          uses: actions/download-artifact@v3
-          with:
-            name: coverage-results
-            path: coverage-results
-        
-        - name: Download BDD results
-          uses: actions/download-artifact@v3
-          with:
-            name: bdd-results
-            path: bdd-results
-        
-        - name: Download mutation results
-          uses: actions/download-artifact@v3
-          with:
-            name: mutation-results
-            path: mutation-results
-        
-        - name: Generate dashboard
-          run: |
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Testing Results Dashboard</title>
-              <style>
-                body {
-                  font-family: Arial, sans-serif;
-                  max-width: 1000px;
-                  margin: 0 auto;
-                  padding: 20px;
-                  background-color: #f5f5f5;
-                }
-                .dashboard-grid {
-                  display: grid;
-                  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                  gap: 20px;
-                  margin-top: 20px;
-                }
-                .card {
-                  background: white;
-                  border-radius: 8px;
-                  padding: 20px;
-                  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                  transition: transform 0.2s;
-                }
-                .card:hover {
-                  transform: translateY(-5px);
-                }
-                h1 {
-                  color: #333;
-                  text-align: center;
-                  margin-bottom: 30px;
-                }
-                h2 {
-                  color: #2196F3;
-                  margin-top: 0;
-                  font-size: 1.5em;
-                }
-                .metrics {
-                  margin-top: 15px;
-                  font-size: 1.1em;
-                }
-                .metric {
-                  margin: 5px 0;
-                  color: #555;
-                }
-                .view-report {
-                  display: inline-block;
-                  margin-top: 15px;
-                  padding: 8px 16px;
-                  background-color: #2196F3;
-                  color: white;
-                  text-decoration: none;
-                  border-radius: 4px;
-                  transition: background-color 0.2s;
-                }
-                .view-report:hover {
-                  background-color: #1976D2;
-                }
-              </style>
-            </head>
-            <body>
-              <h1>Testing Results Dashboard</h1>
-              <div class="dashboard-grid">
-                <!-- Coverage Report Card -->
-                <div class="card">
-                  <h2>Code Coverage</h2>
-                  <div class="metrics">
-                    <div class="metric">Line Coverage: <span id="lineCoverage">-</span></div>
-                    <div class="metric">Branch Coverage: <span id="branchCoverage">-</span></div>
-                    <div class="metric">Method Coverage: <span id="methodCoverage">-</span></div>
-                  </div>
-                  <a href="/reports/coverage/index.html" class="view-report">View Full Report</a>
-                </div>
-                
-                <!-- BDD Tests Card -->
-                <div class="card">
-                  <h2>BDD Tests</h2>
-                  <div class="metrics">
-                    <div class="metric">Scenarios Passed: <span id="bddPassed">-</span></div>
-                    <div class="metric">Scenarios Failed: <span id="bddFailed">-</span></div>
-                    <div class="metric">Features Covered: <span id="features">-</span></div>
-                  </div>
-                  <a href="/reports/bdd/PDFTests.html" class="view-report">View Full Report</a>
-                </div>
-                
-                <!-- Mutation Tests Card -->
-                <div class="card">
-                  <h2>Mutation Tests</h2>
-                  <div class="metrics">
-                    <div class="metric">Mutation Score: <span id="mutationScore">-</span></div>
-                    <div class="metric">Killed Mutants: <span id="killedMutants">-</span></div>
-                    <div class="metric">Survived Mutants: <span id="survivedMutants">-</span></div>
-                  </div>
-                  <a href="/reports/mutation/index.html" class="view-report">View Full Report</a>
-                </div>
-              </div>
-            </body>
-            </html>
-            cat > dashboard/index.html << 'EOF'
-            [CONTENIDO_DEL_HTML_ANTERIOR]
-            EOF
+    needs: [security-analysis, bdd]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare Dashboard
+        run: |
+          mkdir -p dashboard
+          cat > dashboard/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Testing Results Dashboard</title>
+            <style>
+              body { 
+                font-family: Arial; 
+                max-width: 1200px; 
+                margin: 0 auto; 
+                padding: 20px; 
+                background-color: #f5f5f5;
+              }
+              .card { 
+                border: 1px solid #ddd; 
+                padding: 20px; 
+                margin: 20px 0; 
+                border-radius: 8px;
+                background-color: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              }
+              .card h2 {
+                color: #333;
+                margin-top: 0;
+                border-bottom: 2px solid #2196F3;
+                padding-bottom: 10px;
+              }
+              .metric { 
+                font-size: 24px; 
+                color: #2196F3; 
+              }
+              a {
+                display: inline-block;
+                padding: 10px 20px;
+                background-color: #2196F3;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                transition: background-color 0.3s;
+              }
+              a:hover {
+                background-color: #1976D2;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>Testing Results Dashboard</h1>
             
-            # Copiar los reportes a sus directorios correspondientes
-            mkdir -p dashboard/reports/{coverage,bdd,mutation}
-            cp -r coverage-results/* dashboard/reports/coverage/ || true
-            cp -r bdd-results/* dashboard/reports/bdd/ || true
-            cp -r mutation-results/* dashboard/reports/mutation/ || true
-        
-        - name: Deploy to GitHub Pages
-          uses: peaceiris/actions-gh-pages@v3
-          with:
-            github_token: ${{ secrets.GITHUB_TOKEN }}
-            publish_dir: dashboard
+            <div class="card">
+              <h2>Security Analysis</h2>
+              <div class="report-links">
+                <a href="/reports/security/semgrep-results.json">Semgrep Report</a>
+                <a href="/reports/security/snyk-report.html">Snyk Report</a>
+              </div>
+            </div>
+            
+            <div class="card">
+              <h2>BDD Test Results</h2>
+              <a href="/reports/bdd/PDFTests.html">View BDD Test Report</a>
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dashboard
