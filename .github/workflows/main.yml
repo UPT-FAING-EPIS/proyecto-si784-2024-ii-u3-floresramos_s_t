@@ -277,17 +277,30 @@ jobs:
             # Extraer y mostrar resultados del archivo trx
             passed=$(grep -o 'outcome="Passed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
             failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            echo "### Results" >> $GITHUB_STEP_SUMMARY
-            echo "* Passed: $passed" >> $GITHUB_STEP_SUMMARY
-            echo "* Failed: $failed" >> $GITHUB_STEP_SUMMARY
+            total=$((passed + failed))
+            
+            echo "### Overall Results" >> $GITHUB_STEP_SUMMARY
+            echo "* Total Scenarios: $total" >> $GITHUB_STEP_SUMMARY
+            echo "* ✅ Passed: $passed" >> $GITHUB_STEP_SUMMARY
+            echo "* ❌ Failed: $failed" >> $GITHUB_STEP_SUMMARY
+            
+            echo "### Features Details" >> $GITHUB_STEP_SUMMARY
+            echo "* Login Feature" >> $GITHUB_STEP_SUMMARY
+            echo "  - Successful login scenario" >> $GITHUB_STEP_SUMMARY
+            echo "  - Failed login scenario" >> $GITHUB_STEP_SUMMARY
+            
+            echo "* Register Feature" >> $GITHUB_STEP_SUMMARY
+            echo "  - New user registration" >> $GITHUB_STEP_SUMMARY
+            echo "  - Duplicate user registration" >> $GITHUB_STEP_SUMMARY
+            
+            echo "* PDFGeneration Feature" >> $GITHUB_STEP_SUMMARY
+            echo "  - Generate PDF with valid data" >> $GITHUB_STEP_SUMMARY
+            echo "  - Generate PDF with invalid data" >> $GITHUB_STEP_SUMMARY
+            
+            echo "* UserManagement Feature" >> $GITHUB_STEP_SUMMARY
+            echo "  - Update user profile" >> $GITHUB_STEP_SUMMARY
+            echo "  - Delete user account" >> $GITHUB_STEP_SUMMARY
           fi
-          
-          echo "### Features" >> $GITHUB_STEP_SUMMARY
-          echo "* Login" >> $GITHUB_STEP_SUMMARY
-          echo "* Register" >> $GITHUB_STEP_SUMMARY
-          echo "* PDFGeneration" >> $GITHUB_STEP_SUMMARY
-          echo "* UserManagement" >> $GITHUB_STEP_SUMMARY
-
       - name: Extract BDD Results
         run: |
           if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
