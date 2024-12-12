@@ -330,12 +330,25 @@ jobs:
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
       - name: Extract SonarQube Metrics
+        shell: powershell
         run: |
-          response=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "https://sonarcloud.io/api/measures/component?component=mario-flores_proyectopdf&metricKeys=coverage,code_smells,bugs")
-          coverage=$(echo $response | jq -r '.component.measures[] | select(.metric=="coverage") | .value')
-          code_smells=$(echo $response | jq -r '.component.measures[] | select(.metric=="code_smells") | .value')
-          bugs=$(echo $response | jq -r '.component.measures[] | select(.metric=="bugs") | .value')
+          $response = Invoke-RestMethod -Uri "https://sonarcloud.io/api/measures/component?component=mario-flores_proyectopdf&metricKeys=coverage,code_smells,bugs" -Headers @{
+            "Authorization" = "Bearer ${{ secrets.SONAR_TOKEN }}"
+          }
           
-          echo "Coverage: $coverage%"
-          echo "Code Smells: $code_smells"
-          echo "Bugs: $bugs"
+          $metrics = $response.component.measures | ConvertTo-Json
+          Write-Output "SonarQube Metrics: $metrics"
+          
+          # Create metrics file for dashboard
+          $metricsHtml = @"
+          <div class="card">
+            <h2>SonarQube Metrics</h2>
+            <div class="metric-container">
+              $(foreach ($measure in $response.component.measures) {
+                "<div class='metric'><span class='metric-label'>$($measure.metric):</span> <span class='metric-value'>$($measure.value)</span></div>"
+              })
+            </div>
+          </div>
+            "@
+          
+          Add-Content -Path "reports/index.html" -Value $metricsHtml -Encoding UTF8
