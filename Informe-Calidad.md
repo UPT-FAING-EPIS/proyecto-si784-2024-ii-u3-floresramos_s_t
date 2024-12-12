@@ -1,3 +1,7 @@
+[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/-i7BWR5S)
+[![Open in Codespaces](https://classroom.github.com/assets/launch-codespace-2972f46106e565e64193e422d61a12cf1da4916b45550586e14ef0a7c637dd04.svg)](https://classroom.github.com/open-in-codespaces?assignment_repo_id=17290969)
+# proyecto-formatos-02
+
 <div align="center">
   <img src="./media/logo-upt.png" alt="Escudo UPT" style="width:1.088in;height:1.46256in" />
   
@@ -418,7 +422,7 @@ El análisis estático señala un problema de consistencia debido a la ausencia 
 
 Reporte de Pruebas de interfaz de usuario
 
-Pruebas de interfaz Web, Desktop, Mobile (al menos 3 completas) incluir el video generado de forma automatizada por el framework
+Pruebas (al menos 3 completas) incluir el video generado de forma automatizada por el framework
 
 [video_1.webm](https://github.com/user-attachments/assets/40ad6cfb-b6f2-427b-8a7c-fc5d852765ae)
 
@@ -435,3 +439,16 @@ Si se ingresa un correo o contraseña incorrectos se nos mostrara un mensaje de 
 [video_4.webm](https://github.com/user-attachments/assets/f494f317-d15e-4ec9-8e7c-7970aef15b8b)
 
 Iniciamos sesion , se nos mostrara la interfaz principal de bienvenida con su tupo de suscripcion cantidad de operaciones realizadas y podremos tener la suscribcion premiun 
+
+Bibliografias: 
+
+- Semgrep | Homepage. (s. f.). Semgrep. 
+- Datadog. (2016, 14 julio). DataDog Code Monitoring | DataDog. Datadog. 
+- Snyk. (s. f.). Developer security | Snyk. 
+
+
+### Enlace Video: 
+
+
+
+
