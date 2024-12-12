@@ -54,80 +54,42 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       
+      # Mutation Testing
+      - name: Install Stryker
+        run: dotnet tool install -g dotnet-stryker
+        
+      - name: Run Stryker
+        run: |
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          dotnet build
+          dotnet stryker -tp "net8.0" || true
+          mkdir -p ../../reports/mutation
+          cp -r StrykerOutput/reports/* ../../reports/mutation/
+
       # BDD Tests
-      # BDD Tests y Summary
-      - name: Run BDD Tests and Generate Summary
+      - name: Restore dependencies
         run: |
           cd PROYECTO_PDF
-          
-          # Limpiar y crear directorios
-          rm -rf TestResults
-          mkdir -p TestResults
-          
-          # Ejecutar pruebas con configuración específica
-          dotnet test \
-            --filter "Category=BDD" \
-            --logger "trx;LogFileName=TestResults/bdd-results.trx" \
-            --results-directory:./TestResults \
-            --verbosity normal
-          
-          # Debug: Mostrar estructura de directorios
-          echo "::notice title=Debug::Mostrando estructura de directorios"
-          ls -R ./TestResults
-          
-          # Crear el summary
-          echo "# 🧪 BDD Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Verificar archivo trx
-          if [ -f "./TestResults/bdd-results.trx" ]; then
-            echo "::notice title=Debug::Archivo TRX encontrado"
-            
-            # Extraer información básica
-            echo "## 📊 Test Execution Results" >> $GITHUB_STEP_SUMMARY
-            
-            echo "### Features ejecutados:" >> $GITHUB_STEP_SUMMARY
-            echo "- PDF Generation Feature" >> $GITHUB_STEP_SUMMARY
-            echo "  - Generate PDF with valid data" >> $GITHUB_STEP_SUMMARY
-            echo "  - Handle PDF generation errors" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            echo "### User Management Feature" >> $GITHUB_STEP_SUMMARY
-            echo "- User Registration" >> $GITHUB_STEP_SUMMARY
-            echo "  - Register new user" >> $GITHUB_STEP_SUMMARY
-            echo "  - Handle duplicate registration" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            echo "### Authentication Feature" >> $GITHUB_STEP_SUMMARY
-            echo "- Login Process" >> $GITHUB_STEP_SUMMARY
-            echo "  - Successful login" >> $GITHUB_STEP_SUMMARY
-            echo "  - Failed login handling" >> $GITHUB_STEP_SUMMARY
-            
-            # Extraer estadísticas del archivo trx
-            total=$(grep -c "<UnitTestResult" "./TestResults/bdd-results.trx" || echo "0")
-            passed=$(grep -c "outcome=\"Passed\"" "./TestResults/bdd-results.trx" || echo "0")
-            failed=$(grep -c "outcome=\"Failed\"" "./TestResults/bdd-results.trx" || echo "0")
-            
-            echo "## 📈 Statistics" >> $GITHUB_STEP_SUMMARY
-            echo "- Total Tests: $total" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Passed: $passed" >> $GITHUB_STEP_SUMMARY
-            echo "- ❌ Failed: $failed" >> $GITHUB_STEP_SUMMARY
-            
-            # Añadir anotaciones para GitHub Actions
-            echo "::notice title=BDD Summary::Total: $total | ✅ Passed: $passed | ❌ Failed: $failed"
-          else
-            echo "::warning title=BDD Tests::No se encontró el archivo de resultados en TestResults/"
-            echo "## ⚠️ Test Execution Status" >> $GITHUB_STEP_SUMMARY
-            echo "No se pudo encontrar el archivo de resultados de las pruebas BDD." >> $GITHUB_STEP_SUMMARY
-            echo "Verifique que las pruebas estén configuradas correctamente." >> $GITHUB_STEP_SUMMARY
-            
-            # Mostrar contenido del directorio para debug
-            echo "### 🔍 Debug Information" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-            ls -R . >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          fi
-
+          dotnet restore
+      
+      - name: Build
+        run: |
+          cd PROYECTO_PDF
+          dotnet build --no-restore
+      
+      - name: Run BDD Tests
+        run: |
+          cd PROYECTO_PDF
+          dotnet test --filter "Category=BDD" --no-build --verbosity normal
+      
+      - name: Install SpecFlow Plus LivingDoc
+        run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
+      
+      - name: Generate BDD Report
+        run: |
+          mkdir -p reports/bdd
+          cd PROYECTO_PDF
+          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
 
       # Create main dashboard
       - name: Create Dashboard
@@ -189,8 +151,7 @@ jobs:
             <div class="card">
               <h2>Security Analysis</h2>
               <div class="report-links">
-                <a href="security/semgrep-report.html">Semgrep HTML Report</a>
-                <a href="security/semgrep.json">Semgrep JSON Report</a>
+                <a href="security/semgrep-report.html">Semgrep Report</a>
                 <a href="security/snyk-report.html">Snyk Report</a>
               </div>
             </div>
@@ -198,6 +159,13 @@ jobs:
             <div class="card">
               <h2>BDD Test Results</h2>
               <a href="bdd/bdd-report.html">View BDD Test Report</a>
+            </div>
+
+            <div class="card">
+              <h2>Mutation Testing</h2>
+              <div class="report-links">
+                <a href="mutation/index.html">View Mutation Report</a>
+              </div>
             </div>
           </body>
           </html>
