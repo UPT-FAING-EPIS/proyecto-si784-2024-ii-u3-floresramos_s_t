@@ -26,17 +26,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-       # Java Setup for Sonar
+     # Java Setup for Sonar
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: 'zulu'
-          
-      - name: Restore packages
-        run: |
-          cd PROYECTO_PDF
-          dotnet restore
           
       - name: Install SonarCloud scanner
         run: |
@@ -59,11 +54,14 @@ jobs:
             /d:sonar.tests="PROYECTO_PDF/NegocioPDF.Tests/**/*.cs" \
             /d:sonar.test.exclusions="**/obj/**,**/bin/**,**/*UITests*/**,**/*SubscriptionTests.cs" \
             /d:sonar.verbose=true
-          
-      - name: Run tests with coverage
+
+      # Build del proyecto
+      - name: Build and Test
         run: |
-          cd PROYECTO_PDF/NegocioPDF.Tests
-          dotnet test --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage" --collect:"XPlat Code Coverage;Format=opencover"
+          cd PROYECTO_PDF
+          dotnet restore
+          dotnet build --no-restore
+          dotnet test --no-build --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage;Format=opencover"
 
       - name: End SonarCloud Analysis
         env:
