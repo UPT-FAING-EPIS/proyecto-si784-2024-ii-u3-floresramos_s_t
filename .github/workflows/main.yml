@@ -16,13 +16,58 @@ env:
   DOTNET_VERSION: '8.0.x'
 
 jobs:
-  generate-and-publish:
-    name: Generate Reports and Publish
+  tests-and-coverage:
+    name: Tests & Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      # Semgrep Analysis
+      - name: Configure .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          
+      - name: Restore packages
+        run: |
+          cd PROYECTO_PDF
+          dotnet restore
+          
+      - name: Run tests with coverage
+        run: |
+          cd PROYECTO_PDF
+          dotnet test --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage"
+          
+      - name: ReportGenerator
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.3.7
+        with:
+          reports: '**/PROYECTO_PDF/**/coverage.cobertura.xml'
+          targetdir: coveragereport
+          reporttypes: Html;MarkdownSummary;MarkdownAssembliesSummary;MarkdownSummaryGithub
+
+      - name: Install Stryker
+        run: dotnet tool install -g dotnet-stryker
+        
+      - name: Run Stryker
+        run: |
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          echo "Current directory: $(pwd)"
+          ls -la
+          dotnet stryker -tp net8.0 || true
+          mkdir -p ../../reports/mutation
+          if [ -d "StrykerOutput/reports" ]; then
+            cp -r StrykerOutput/reports/* ../../reports/mutation/
+            echo "Mutation report generated and copied"
+          else
+            echo "Creating placeholder report"
+            echo "<html><body><h1>Mutation Report</h1><p>No results available</p></body></html>" > ../../reports/mutation/mutation-report.html
+          fi
+
+      - name: Prepare Reports Directory
+        run: |
+          mkdir -p reports/coverage
+          cp -r coveragereport/* reports/coverage/
+
+      # Security Analysis
       - name: Run Semgrep
         run: |
           docker pull semgrep/semgrep
@@ -39,11 +84,7 @@ jobs:
       
       # Snyk Analysis
       - uses: snyk/actions/setup@master
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
+      
       - name: Install snyk-to-html
         run: npm install -g snyk-to-html
 
@@ -53,71 +94,18 @@ jobs:
           snyk code test --json | snyk-to-html -o reports/security/snyk-report.html
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      
-      # Mutation Testing
-      # Mutation Testing
-     # Mutation Testing
-      - name: Install Stryker
-        run: dotnet tool install -g dotnet-stryker
-        
-      - name: Run Stryker and Copy Report
-        run: |
-          echo "Current directory: $(pwd)"
-          cd PROYECTO_PDF
-          echo "Project directory contents:"
-          ls -la
-          echo "Running Stryker..."
-          cd NegocioPDF.Tests
-          echo "Test project directory contents:"
-          ls -la
-          # Ejecutar Stryker con la ruta completa al proyecto
-          dotnet stryker --project-file "NegocioPDF.Tests.csproj" --reporters "['html']" --project-name "NegocioPDF" || true
-          
-          # Verificar y copiar el reporte
-          if [ -d "StrykerOutput" ]; then
-            echo "StrykerOutput directory exists"
-            echo "Contents of StrykerOutput:"
-            ls -R StrykerOutput/
-            
-            mkdir -p ../../reports/mutation
-            if [ -d "StrykerOutput/reports" ]; then
-              echo "Copying mutation reports..."
-              cp -r StrykerOutput/reports/* ../../reports/mutation/
-              echo "Contents of mutation reports directory:"
-              ls -la ../../reports/mutation/
-            else
-              echo "No reports directory found in StrykerOutput"
-            fi
-          else
-            echo "Creating placeholder report..."
-            mkdir -p ../../reports/mutation
-            cat > ../../reports/mutation/mutation-report.html << 'EOF'
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Mutation Test Results</title>
-                <style>
-                    body { font-family: Arial; padding: 20px; }
-                    .error { color: red; }
-                </style>
-            </head>
-            <body>
-                <h1>Mutation Test Results</h1>
-                <p class="error">The mutation test report could not be generated. Please check the CI/CD logs for more information.</p>
-            </body>
-            </html>
-            EOF
-          fi
-      
+
       # BDD Tests
+      - name: Install SpecFlow Plus LivingDoc
+        run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
+      
       - name: Generate BDD Report
         run: |
+          mkdir -p reports/bdd
           cd PROYECTO_PDF
-          dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
-          mkdir -p ../reports/bdd
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
 
-      # Create main dashboard
+      # Create Dashboard
       - name: Create Dashboard
         run: |
           cat > reports/index.html << 'EOF'
@@ -183,8 +171,17 @@ jobs:
             </div>
             
             <div class="card">
+              <h2>Coverage Report</h2>
+              <div class="report-links">
+                <a href="coverage/index.html">View Coverage Report</a>
+              </div>
+            </div>
+            
+            <div class="card">
               <h2>BDD Test Results</h2>
-              <a href="bdd/bdd-report.html">View BDD Test Report</a>
+              <div class="report-links">
+                <a href="bdd/bdd-report.html">View BDD Test Report</a>
+              </div>
             </div>
 
             <div class="card">
@@ -197,11 +194,17 @@ jobs:
           </html>
           EOF
 
-      - name: List Reports Directory
+      # Extract coverage metrics
+      - name: Extract Coverage Metrics
         run: |
-          echo "Contents of reports directory:"
-          ls -R reports/
+          if [ -f coveragereport/Summary.md ]; then
+            total=$(grep -o 'Line coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
+            branch=$(grep -o 'Branch coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
+            method=$(grep -o 'Method coverage: [0-9]*\.[0-9]*%' coveragereport/Summary.md | cut -d' ' -f3)
+            echo "::notice title=Coverage Results::Line Coverage: ${total}, Branch Coverage: ${branch}, Method Coverage: ${method}"
+          fi
 
+      # Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
