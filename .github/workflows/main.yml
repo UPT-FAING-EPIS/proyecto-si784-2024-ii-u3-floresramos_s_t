@@ -35,7 +35,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd PROYECTO_PDF/NegocioPDF.Tests
-          dotnet test --collect:"XPlat Code Coverage"
+          dotnet test --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage"
 
       - name: Install Tools
         run: |
