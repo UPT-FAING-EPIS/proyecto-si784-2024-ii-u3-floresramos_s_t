@@ -68,7 +68,8 @@ jobs:
       - name: Run BDD Tests
         run: |
           cd PROYECTO_PDF
-          dotnet test --filter "Category=BDD" --no-build --verbosity normal --logger "trx;LogFileName=bdd-results.trx"
+          mkdir -p TestResults
+          dotnet test --filter "Category=BDD" --no-build --verbosity normal --logger "trx;LogFileName=TestResults/bdd-results.trx"
       
       - name: Install SpecFlow Plus LivingDoc
         run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
@@ -79,45 +80,56 @@ jobs:
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
 
-      # Generate BDD Summary for GitHub Actions
-      - name: Generate BDD Summary
+      # Extract and format BDD results for summary
+      - name: Process BDD Results for Summary
         run: |
           echo "# 🧪 BDD Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "## Feature Overview" >> $GITHUB_STEP_SUMMARY
-          echo "### PDF Generation Features" >> $GITHUB_STEP_SUMMARY
-          echo "✅ PDF Creation" >> $GITHUB_STEP_SUMMARY
-          echo "- Generate PDF with valid data" >> $GITHUB_STEP_SUMMARY
-          echo "- Handle PDF generation errors" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Execution Overview" >> $GITHUB_STEP_SUMMARY
           
-          echo "### User Management Features" >> $GITHUB_STEP_SUMMARY
-          echo "✅ User Registration" >> $GITHUB_STEP_SUMMARY
-          echo "- New user registration" >> $GITHUB_STEP_SUMMARY
-          echo "- Duplicate user validation" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "✅ User Authentication" >> $GITHUB_STEP_SUMMARY
-          echo "- User login" >> $GITHUB_STEP_SUMMARY
-          echo "- Invalid credentials handling" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          # Instalar herramientas necesarias
+          sudo apt-get update && sudo apt-get install -y xsltproc xmlstarlet
           
           if [ -f "PROYECTO_PDF/TestResults/bdd-results.trx" ]; then
-            echo "## Test Execution Results" >> $GITHUB_STEP_SUMMARY
-            passed=$(grep -o 'outcome="Passed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            failed=$(grep -o 'outcome="Failed"' PROYECTO_PDF/TestResults/bdd-results.trx | wc -l)
-            total=$((passed + failed))
+            # Extraer resultados con xmlstarlet
+            echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            xmlstarlet sel -t \
+              -m "//UnitTestResult" \
+              -v "concat(@testName, ': ', @outcome)" -n \
+              PROYECTO_PDF/TestResults/bdd-results.trx >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
             
-            echo "📊 Test Statistics" >> $GITHUB_STEP_SUMMARY
-            echo "- Total Scenarios: $total" >> $GITHUB_STEP_SUMMARY
+            # Calcular estadísticas
+            total=$(xmlstarlet sel -t -v "count(//UnitTestResult)" PROYECTO_PDF/TestResults/bdd-results.trx)
+            passed=$(xmlstarlet sel -t -v "count(//UnitTestResult[@outcome='Passed'])" PROYECTO_PDF/TestResults/bdd-results.trx)
+            failed=$(xmlstarlet sel -t -v "count(//UnitTestResult[@outcome='Failed'])" PROYECTO_PDF/TestResults/bdd-results.trx)
+            
+            echo "### 📊 Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "- Total Tests: $total" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Passed: $passed" >> $GITHUB_STEP_SUMMARY
             echo "- ❌ Failed: $failed" >> $GITHUB_STEP_SUMMARY
             
-            success_rate=$((passed * 100 / total))
-            echo "- 📈 Success Rate: $success_rate%" >> $GITHUB_STEP_SUMMARY
+            if [ $total -gt 0 ]; then
+              success_rate=$(( (passed * 100) / total ))
+              echo "- 📈 Success Rate: $success_rate%" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # Extraer contenido del reporte HTML si existe
+          if [ -f "reports/bdd/bdd-report.html" ]; then
+            echo "## 📋 Detailed Feature Results" >> $GITHUB_STEP_SUMMARY
+            echo "### Features and Scenarios" >> $GITHUB_STEP_SUMMARY
+            
+            # Instalar y usar html2text para extraer el contenido relevante
+            sudo apt-get install -y html2text
+            
+            # Procesar el HTML y extraer las secciones relevantes
+            html2text -width 100 -style pretty reports/bdd/bdd-report.html | \
+            awk '/Feature:/{p=1}/References:/{p=0}p' >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 [View Detailed BDD Report](./reports/bdd/bdd-report.html)" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Complete HTML Report](./reports/bdd/bdd-report.html)" >> $GITHUB_STEP_SUMMARY
 
       # Create main dashboard
       - name: Create Dashboard
