@@ -332,23 +332,41 @@ jobs:
       - name: Extract SonarQube Metrics
         shell: powershell
         run: |
-          $response = Invoke-RestMethod -Uri "https://sonarcloud.io/api/measures/component?component=mario-flores_proyectopdf&metricKeys=coverage,code_smells,bugs" -Headers @{
-            "Authorization" = "Bearer ${{ secrets.SONAR_TOKEN }}"
+          $token = "${{ secrets.SONAR_TOKEN }}"
+          $headers = @{
+            Authorization = "Bearer $token"
           }
           
-          $metrics = $response.component.measures | ConvertTo-Json
-          Write-Output "SonarQube Metrics: $metrics"
+          $uri = 'https://sonarcloud.io/api/measures/component'
+          $params = @{
+            component = 'mario-flores_proyectopdf'
+            metricKeys = 'coverage,code_smells,bugs'
+          }
           
-          # Create metrics file for dashboard
-          $metricsHtml = @"
-          <div class="card">
-            <h2>SonarQube Metrics</h2>
-            <div class="metric-container">
-              $(foreach ($measure in $response.component.measures) {
-                "<div class='metric'><span class='metric-label'>$($measure.metric):</span> <span class='metric-value'>$($measure.value)</span></div>"
-              })
+          try {
+            $response = Invoke-RestMethod -Uri "$uri" -Method Get -Headers $headers -Body $params
+            
+            $metrics = @{
+              coverage = ($response.component.measures | Where-Object metric -eq 'coverage').value
+              code_smells = ($response.component.measures | Where-Object metric -eq 'code_smells').value
+              bugs = ($response.component.measures | Where-Object metric -eq 'bugs').value
+            }
+            
+            $metricsHtml = @"
+            <div class="card">
+              <h2>SonarQube Metrics</h2>
+              <div class="metric-container">
+                <div class="metric">Coverage: $($metrics.coverage)%</div>
+                <div class="metric">Code Smells: $($metrics.code_smells)</div>
+                <div class="metric">Bugs: $($metrics.bugs)</div>
+              </div>
             </div>
-          </div>
             "@
-          
-          Add-Content -Path "reports/index.html" -Value $metricsHtml -Encoding UTF8
+                  
+            Add-Content -Path "reports/index.html" -Value $metricsHtml -Encoding UTF8
+            Write-Output "SonarQube metrics extracted successfully"
+          }
+          catch {
+            Write-Error "Failed to extract SonarQube metrics: $_"
+            exit 1
+          }
