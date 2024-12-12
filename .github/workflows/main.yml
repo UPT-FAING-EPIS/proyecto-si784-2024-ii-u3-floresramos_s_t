@@ -44,22 +44,22 @@ jobs:
           targetdir: coveragereport
           reporttypes: Html;MarkdownSummary;MarkdownAssembliesSummary;MarkdownSummaryGithub
 
-      - name: Install Stryker
+       - name: Install Stryker
         run: dotnet tool install -g dotnet-stryker
         
       - name: Run Stryker
         run: |
-          cd PROYECTO_PDF/NegocioPDF.Tests
+          cd PROYECTO_PDF
           echo "Current directory: $(pwd)"
           ls -la
-          dotnet stryker -p "NegocioPDF.Tests.csproj" --reporter "html" || true
-          mkdir -p ../../reports/mutation
-          if [ -d "StrykerOutput/reports" ]; then
-            cp -r StrykerOutput/reports/* ../../reports/mutation/
+          dotnet stryker --solution "PROYECTO_PDF.sln" --project "NegocioPDF.Tests" --reporter "html" || true
+          mkdir -p ../reports/mutation
+          if [ -d "NegocioPDF.Tests/StrykerOutput/reports" ]; then
+            cp -r NegocioPDF.Tests/StrykerOutput/reports/* ../reports/mutation/
             echo "Mutation report generated and copied"
           else
             echo "Creating placeholder report"
-            echo "<html><body><h1>Mutation Report</h1><p>No results available</p></body></html>" > ../../reports/mutation/mutation-report.html
+            echo "<html><body><h1>Mutation Report</h1><p>No results available</p></body></html>" > ../reports/mutation/mutation-report.html
           fi
 
       - name: Prepare Reports Directory
