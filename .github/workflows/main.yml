@@ -337,6 +337,11 @@ jobs:
                 <a href="mutation/mutation-report.html">View Mutation Report</a>
               </div>
             </div>
+            <div class="card">\
+              <h2>UI Test Results<\/h2>\
+              <div class="report-links">\
+                <a href="ui-tests/index.html">View UI Test Report<\/a>\
+              </div>
           </body>
           </html>
           EOF
