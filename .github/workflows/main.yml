@@ -122,7 +122,135 @@ jobs:
           mkdir -p reports/bdd
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
+      # UI Tests Section
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
+      - name: Install Playwright Dependencies
+        run: |
+          npm init -y
+          npm install -D @playwright/test
+          npx playwright install --with-deps chromium
+          echo "::notice title=UI Setup::Playwright instalado correctamente"
+
+      - name: Start Application
+        run: |
+          cd PROYECTO_PDF
+          dotnet run --project "PROYECTOPDF/PROYECTOPDF.csproj" --urls http://localhost:5260 &
+          echo "Waiting for application to start..."
+          sleep 15
+
+      - name: Run UI Tests
+        run: |
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" dotnet test --filter "FullyQualifiedName~UITests"
+
+      - name: Prepare UI Test Report
+        if: always()
+        run: |
+          mkdir -p reports/ui-tests/videos
+          mkdir -p reports/ui-tests/screenshots
+          
+          # Copiar videos y screenshots si existen
+          cp -r PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/videos/* reports/ui-tests/videos/ || true
+          cp -r PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/*.png reports/ui-tests/screenshots/ || true
+          
+          # Crear índice HTML para UI tests
+          cat > reports/ui-tests/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>UI Test Results</title>
+            <style>
+              body { 
+                font-family: Arial; 
+                max-width: 1200px; 
+                margin: 0 auto; 
+                padding: 20px; 
+              }
+              .section {
+                margin: 20px 0;
+                padding: 20px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              }
+              .video-container {
+                margin: 10px 0;
+              }
+              .screenshot-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 20px;
+                margin: 20px 0;
+              }
+              .screenshot {
+                width: 100%;
+                border-radius: 4px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              }
+              video {
+                max-width: 100%;
+                margin: 10px 0;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>UI Test Results</h1>
+            
+            <div class="section">
+              <h2>Test Videos</h2>
+              <div class="video-container">
+                <!-- Videos serán listados aquí -->
+                <script>
+                  fetch('videos/')
+                    .then(response => response.text())
+                    .then(text => {
+                      const videos = text.match(/href="([^"]+\.webm)"/g) || [];
+                      videos.forEach(video => {
+                        const src = video.match(/href="([^"]+)"/)[1];
+                        document.querySelector('.video-container').innerHTML += `
+                          <div>
+                            <h3>${src}</h3>
+                            <video controls>
+                              <source src="videos/${src}" type="video/webm">
+                              Your browser does not support the video tag.
+                            </video>
+                          </div>
+                        `;
+                      });
+                    });
+                </script>
+              </div>
+            </div>
+            
+            <div class="section">
+              <h2>Screenshots</h2>
+              <div class="screenshot-container">
+                <!-- Screenshots serán listados aquí -->
+                <script>
+                  fetch('screenshots/')
+                    .then(response => response.text())
+                    .then(text => {
+                      const images = text.match(/href="([^"]+\.png)"/g) || [];
+                      images.forEach(image => {
+                        const src = image.match(/href="([^"]+)"/)[1];
+                        document.querySelector('.screenshot-container').innerHTML += `
+                          <div>
+                            <img class="screenshot" src="screenshots/${src}" alt="${src}">
+                            <p>${src}</p>
+                          </div>
+                        `;
+                      });
+                    });
+                </script>
+              </div>
+            </div>
+          </body>
+          </html>
+          EOF
       # Create Dashboard
        # Create Dashboard with Coverage Link
       - name: Create Dashboard
