@@ -337,15 +337,34 @@ jobs:
                 <a href="mutation/mutation-report.html">View Mutation Report</a>
               </div>
             </div>
-            <div class="card">\
-              <h2>UI Test Results<\/h2>\
-              <div class="report-links">\
-                <a href="ui-tests/index.html">View UI Test Report<\/a>\
-              </div>
+            <div class="card">
+            <h2>UI Test Results</h2>
+            <div class="report-links">
+              <a href="ui-tests/index.html">View UI Test Report</a>
+            </div>
+          </div>
           </body>
           </html>
           EOF
+      - name: Upload UI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: |
+            PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/videos/
+            PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/*.png
+          retention-days: 14
 
+      - name: Publish UI Test Results in Summary
+        if: always()
+        run: |
+          echo "## UI Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "* Tests Executed:" >> $GITHUB_STEP_SUMMARY
+          echo "  - LoginTests" >> $GITHUB_STEP_SUMMARY
+          echo "  - RegisterTests" >> $GITHUB_STEP_SUMMARY
+          echo "  - NavigationTests" >> $GITHUB_STEP_SUMMARY
+          echo "  - PDFGenerationTests" >> $GITHUB_STEP_SUMMARY
       # Extract coverage metrics
       - name: Extract Coverage Metrics
         run: |
