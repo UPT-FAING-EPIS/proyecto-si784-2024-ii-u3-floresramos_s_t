@@ -81,47 +81,40 @@ jobs:
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
 
       # Extract and format BDD results for summary
-      - name: Run BDD Tests and Generate Annotations
+      - name: Run BDD Tests and Process Results
         run: |
           cd PROYECTO_PDF
-          # Ejecutar las pruebas y guardar resultados
-          dotnet test --filter "Category=BDD" --no-build --verbosity normal --logger "trx;LogFileName=bdd-results.trx"
           
-          # Generar anotaciones para resultados generales
-          echo "::notice title=BDD Overview::Starting BDD test results summary"
+          # Ejecutar las pruebas
+          dotnet test --filter "Category=BDD" --no-build --verbosity normal \
+            --logger "trx;LogFileName=TestResults/bdd-results.trx" \
+            --logger "console;verbosity=detailed"
           
-          # Anotaciones para Features
-          echo "::notice title=Feature - PDF Generation::Test scenarios for PDF creation and validation"
-          echo "::notice title=PDF Scenarios::✓ Generate PDF with valid data"
-          echo "::notice title=PDF Scenarios::✓ Handle invalid PDF generation"
-          
-          echo "::notice title=Feature - User Management::Test scenarios for user operations"
-          echo "::notice title=User Scenarios::✓ Register new user"
-          echo "::notice title=User Scenarios::✓ Handle duplicate registration"
-          
-          echo "::notice title=Feature - Authentication::Test scenarios for login process"
-          echo "::notice title=Auth Scenarios::✓ Validate successful login"
-          echo "::notice title=Auth Scenarios::✓ Handle invalid credentials"
-          
-          # Extraer y mostrar estadísticas
+          # Procesar resultados del archivo TRX
           if [ -f "TestResults/bdd-results.trx" ]; then
-            passed=$(grep -o 'outcome="Passed"' TestResults/bdd-results.trx | wc -l)
-            failed=$(grep -o 'outcome="Failed"' TestResults/bdd-results.trx | wc -l)
-            total=$((passed + failed))
-            success_rate=$((passed * 100 / total))
+            # Extraer estadísticas generales
+            total_tests=$(grep -c "<UnitTestResult" TestResults/bdd-results.trx)
+            passed_tests=$(grep -c 'outcome="Passed"' TestResults/bdd-results.trx)
+            failed_tests=$(grep -c 'outcome="Failed"' TestResults/bdd-results.trx)
             
-            echo "::notice title=BDD Statistics::Total Scenarios: ${total}"
-            echo "::notice title=BDD Results::✅ Passed: ${passed}, ❌ Failed: ${failed}"
-            echo "::notice title=BDD Success Rate::${success_rate}% scenarios passed"
+            echo "::notice title=BDD Test Summary::Total Tests: ${total_tests}"
+            echo "::notice title=BDD Results::✅ Passed: ${passed_tests} | ❌ Failed: ${failed_tests}"
             
-            # Advertencias si hay fallos
-            if [ $failed -gt 0 ]; then
-              echo "::warning title=BDD Failures::${failed} test scenarios failed"
-            fi
+            # Extraer y mostrar resultados individuales
+            grep "<UnitTestResult" TestResults/bdd-results.trx | while read -r line ; do
+              test_name=$(echo $line | grep -o 'testName="[^"]*"' | cut -d'"' -f2)
+              outcome=$(echo $line | grep -o 'outcome="[^"]*"' | cut -d'"' -f2)
+              
+              if [ "$outcome" = "Passed" ]; then
+                echo "::notice title=Test Result::✅ ${test_name}"
+              else
+                echo "::warning title=Test Result::❌ ${test_name}"
+              fi
+            done
+          else
+            echo "::error title=BDD Tests::No test results file found"
           fi
-          
-          # Notificación final
-          echo "::notice title=BDD Report::Detailed report available in GitHub Pages"
+
 
       # Create main dashboard
       - name: Create Dashboard
