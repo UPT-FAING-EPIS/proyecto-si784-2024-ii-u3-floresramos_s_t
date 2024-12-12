@@ -328,4 +328,78 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
-
+            ui-tests:
+  ui-tests:
+    name: Interface Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Playwright Dependencies
+        run: |
+          npm init -y
+          npm install -D @playwright/test
+          npx playwright install --with-deps chromium
+          echo "::notice title=UI Setup::Playwright instalado correctamente"
+      - name: Restore .NET dependencies
+        run: |
+          cd PROYECTO_PDF
+          dotnet restore
+          echo "::notice title=UI Tests::Preparando pruebas de interfaz"
+      - name: Start Application
+        run: |
+          cd PROYECTO_PDF
+          dotnet run --project "PROYECTOPDF/PROYECTOPDF.csproj" --urls http://localhost:5260 &
+          echo "Waiting for application to start..."
+          sleep 15
+          echo "::notice title=UI Application::Aplicación iniciada en puerto 5260"
+      - name: Run UI Tests with Xvfb
+        run: |
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          echo "::notice title=UI Test Execution::Ejecutando pruebas de interfaz"
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" dotnet test --filter "FullyQualifiedName~UITests"
+      - name: Add Specific Test Names
+        run: |
+          echo "::notice title=UI Tests::Running SubscriptionTests.LoginFailure_ShouldShowError"
+          echo "::notice title=UI Tests::Running SubscriptionTests.Register_NewUser"
+          echo "::notice title=UI Tests::Running SubscriptionTests.TestPremiumSubscriptionFlow"
+          echo "::notice title=UI Tests::Running SubscriptionTests.LoginSuccess_ShouldShowOperationsButton"
+      - name: Process Test Results
+        if: always()
+        run: |
+          echo "::notice title=UI Test Names::LoginFailure Test, Register Test, Premium Subscription Test, LoginSuccess Test"
+          echo "::notice title=UI Test Location::Tests executed in NegocioPDF.Tests/UITests/"
+      - name: Extract UI Test Results
+        if: always()
+        run: |
+          passed=$(find PROYECTO_PDF/NegocioPDF.Tests/TestResults -name "*.trx" -exec grep -l "outcome=\"Passed\"" {} \; | wc -l)
+          failed=$(find PROYECTO_PDF/NegocioPDF.Tests/TestResults -name "*.trx" -exec grep -l "outcome=\"Failed\"" {} \; | wc -l)
+          echo "::notice title=UI Test Results::Tests Passed: ${passed}, Tests Failed: ${failed}"
+      - name: Publish UI Test Results in Summary
+        if: always()
+        run: |
+          echo "## UI Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "* Tests Executed:" >> $GITHUB_STEP_SUMMARY
+          echo "  - LoginFailure_ShouldShowError" >> $GITHUB_STEP_SUMMARY
+          echo "  - Register_NewUser" >> $GITHUB_STEP_SUMMARY
+          echo "  - TestPremiumSubscriptionFlow" >> $GITHUB_STEP_SUMMARY
+          echo "  - LoginSuccess_ShouldShowOperationsButton" >> $GITHUB_STEP_SUMMARY
+          echo "* Results:" >> $GITHUB_STEP_SUMMARY
+          echo "  - Passed: ${passed}" >> $GITHUB_STEP_SUMMARY
+          echo "  - Failed: ${failed}" >> $GITHUB_STEP_SUMMARY
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ui-test-results
+          path: |
+            PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/videos/
+            PROYECTO_PDF/NegocioPDF.Tests/bin/Debug/net8.0/*.png
+          retention-days: 14
