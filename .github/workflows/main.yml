@@ -55,58 +55,47 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       
       # BDD Tests
-      - name: Run BDD Tests
+      # BDD Tests y Summary
+      - name: Run BDD Tests and Generate Summary
         run: |
           cd PROYECTO_PDF
-          mkdir -p TestResults
-          dotnet test --filter "Category=BDD" \
-            --no-build \
-            --verbosity normal \
-            --logger "trx;LogFileName=bdd-results.trx" \
-            --results-directory TestResults/
-
-      - name: Process BDD Results
-        if: always()
-        run: |
-          cd PROYECTO_PDF
-          if [ -f "TestResults/bdd-results.trx" ]; then
-            # Extraer estadísticas
-            total=$(grep -c "<UnitTestResult" "TestResults/bdd-results.trx")
-            passed=$(grep -c 'outcome="Passed"' "TestResults/bdd-results.trx")
-            failed=$(grep -c 'outcome="Failed"' "TestResults/bdd-results.trx")
+          dotnet test --filter "Category=BDD" --no-build --verbosity normal
+          
+          # Crear el summary de BDD
+          echo "# 🧪 BDD Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "TestResults/TestExecution.json" ]; then
+            # Procesar el archivo JSON y extraer resultados
+            features=$(jq -r '.features | length' TestResults/TestExecution.json)
+            scenarios=$(jq -r '.features[].scenarios | length' TestResults/TestExecution.json | awk '{sum+=$1} END{print sum}')
+            passed=$(jq -r '.features[].scenarios[] | select(.status=="OK") | .status' TestResults/TestExecution.json | wc -l)
+            failed=$(jq -r '.features[].scenarios[] | select(.status!="OK") | .status' TestResults/TestExecution.json | wc -l)
             
-            # Publicar anotaciones
-            echo "::notice title=BDD Summary::Total: $total | ✅ Passed: $passed | ❌ Failed: $failed"
+            # Escribir estadísticas generales
+            echo "## 📊 Overall Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "- Total Features: $features" >> $GITHUB_STEP_SUMMARY
+            echo "- Total Scenarios: $scenarios" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Passed: $passed" >> $GITHUB_STEP_SUMMARY
+            echo "- ❌ Failed: $failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
             
-            # Extraer y mostrar resultados individuales
-            while IFS= read -r line; do
-              if [[ $line =~ testName=\"([^\"]*)\".*outcome=\"([^\"]*)\" ]]; then
-                test_name="${BASH_REMATCH[1]}"
-                outcome="${BASH_REMATCH[2]}"
-                
-                if [ "$outcome" = "Passed" ]; then
-                  echo "::notice title=Test::✅ $test_name"
-                else
-                  echo "::warning title=Test::❌ $test_name"
-                fi
-              fi
-            done < <(grep "<UnitTestResult" "TestResults/bdd-results.trx")
+            # Detalles por Feature
+            echo "## 🔍 Feature Details" >> $GITHUB_STEP_SUMMARY
+            
+            jq -r '.features[] | "### " + .title + "\n" + 
+              (.scenarios[] | "- **" + .title + "**: " + 
+              if .status == "OK" then "✅ Passed" else "❌ Failed" end + "\n" + 
+              "  - Duration: " + (.executionTime | tostring) + "ms\n")' \
+              TestResults/TestExecution.json >> $GITHUB_STEP_SUMMARY
+            
+            # Añadir enlace al reporte detallado
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 📝 Detailed Report" >> $GITHUB_STEP_SUMMARY
+            echo "Para ver el reporte detallado completo, revisa el archivo LivingDoc generado." >> $GITHUB_STEP_SUMMARY
           else
-            echo "::error title=BDD Tests::No test results file found"
-            ls -la TestResults/
+            echo "⚠️ No se encontró el archivo de resultados de las pruebas BDD." >> $GITHUB_STEP_SUMMARY
           fi
-
-      - name: Install SpecFlow Plus LivingDoc
-        run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
-      
-      - name: Generate BDD Report
-        run: |
-          mkdir -p reports/bdd
-          cd PROYECTO_PDF
-          livingdoc test-assembly \
-            ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll \
-            -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json \
-            -o ../reports/bdd/bdd-report.html
 
 
       # Create main dashboard
