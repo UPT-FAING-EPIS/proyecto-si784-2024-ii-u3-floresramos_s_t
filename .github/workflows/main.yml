@@ -27,48 +27,112 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
      # Java Setup for Sonar
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: windows-latest
+    steps:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: 'zulu'
-          
-      - name: Install SonarCloud scanner
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Limpiar carpetas de Playwright
+      - name: Clean Playwright folders
+        shell: powershell
         run: |
-          dotnet tool install --global dotnet-sonarscanner
-          
+          Get-ChildItem -Path . -Directory -Recurse -Filter ".playwright" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~\sonar\cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache SonarCloud scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: .\.sonar\scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+
+      - name: Install SonarCloud scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          New-Item -Path .\.sonar\scanner -ItemType Directory
+          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+
       - name: Begin SonarCloud Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: powershell
         run: |
-          cd PROYECTO_PDF
-          dotnet sonarscanner begin \
-            /k:"mario-flores_proyectopdf" \
-            /o:"mario-flores" \
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
-            /d:sonar.host.url="https://sonarcloud.io" \
-            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" \
-            /d:sonar.coverage.exclusions="**/*Tests*.cs,**/obj/**,**/bin/**" \
-            /d:sonar.exclusions="**/*.js,**/*.css,**/*.html,**/*Tests*.cs,**/obj/**,**/bin/**,**/.playwright/**" \
-            /d:sonar.sources="NegocioPDF/**/*.cs" \
-            /d:sonar.tests="NegocioPDF.Tests/**/*.cs" \
-            /d:sonar.test.exclusions="**/obj/**,**/bin/**,**/*UITests*/**,**/*SubscriptionTests.cs" \
+          .\.sonar\scanner\dotnet-sonarscanner begin `
+            /k:"mario-flores_proyectopdf" `
+            /o:"mario-flores" `
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
+            /d:sonar.host.url="https://sonarcloud.io" `
+            /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" `
+            /d:sonar.coverage.exclusions="**/*Tests*.cs,**/obj/**,**/bin/**" `
+            /d:sonar.exclusions="**/*.js,**/*.css,**/*.html,**/*Tests*.cs,**/obj/**,**/bin/**,**/.playwright/**" `
+            /d:sonar.sources="PROYECTO_PDF/NegocioPDF/**/*.cs" `
+            /d:sonar.tests="PROYECTO_PDF/NegocioPDF.Tests/**/*.cs" `
+            /d:sonar.test.exclusions="**/obj/**,**/bin/**,**/*UITests*/**,**/*SubscriptionTests.cs" `
             /d:sonar.verbose=true
 
-      - name: Build and Test
+      # Build y Test específicos
+      - name: Build NegocioPDF
+        shell: powershell
         run: |
-          cd PROYECTO_PDF
-          dotnet build PROYECTOPDF.sln
-          dotnet test --no-build --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage;Format=opencover"
+          dotnet restore PROYECTO_PDF/NegocioPDF/NegocioPDF.csproj --ignore-failed-sources
+          dotnet build PROYECTO_PDF/NegocioPDF/NegocioPDF.csproj --configuration Release --no-restore
+
+      - name: Build Tests (excluding Playwright)
+        shell: powershell
+        run: |
+          dotnet restore PROYECTO_PDF/NegocioPDF.Tests/NegocioPDF.Tests.csproj /p:DisablePlaywright=true
+          dotnet build PROYECTO_PDF/NegocioPDF.Tests/NegocioPDF.Tests.csproj --configuration Release --no-restore
+
+      - name: Run Tests (excluding UI Tests)
+        shell: powershell
+        run: |
+          dotnet test PROYECTO_PDF/NegocioPDF.Tests/NegocioPDF.Tests.csproj `
+            --configuration Release `
+            --no-build `
+            --collect:"XPlat Code Coverage;Format=opencover" `
+            --results-directory TestResults `
+            --logger trx `
+            --verbosity normal `
+            --filter "FullyQualifiedName!~UITests.SubscriptionTests"
+
+      # Limpieza final
+      - name: Clean Playwright folders
+        if: always()
+        shell: powershell
+        run: |
+          Get-ChildItem -Path . -Directory -Recurse -Filter ".playwright" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
       - name: End SonarCloud Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: powershell
         run: |
-          cd PROYECTO_PDF
-          dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           
       - name: ReportGenerator
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.7
