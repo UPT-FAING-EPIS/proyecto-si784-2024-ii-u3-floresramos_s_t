@@ -60,12 +60,12 @@ jobs:
         
       - name: Run Stryker
         run: |
-          cd PROYECTO_PDF/NegocioPDF.Tests
+          cd PROYECTO_PDF
           dotnet build
-          dotnet stryker -tp "net8.0" || true
-          mkdir -p ../../reports/mutation
-          cp -r StrykerOutput/reports/* ../../reports/mutation/
-
+          mkdir -p ../reports/mutation
+          cd NegocioPDF.Tests
+          dotnet stryker -tp net8.0 -p "NegocioPDF.csproj" --reporter "html" --output "../reports/mutation" || true
+          
       # BDD Tests
       - name: Restore dependencies
         run: |
@@ -164,7 +164,7 @@ jobs:
             <div class="card">
               <h2>Mutation Testing</h2>
               <div class="report-links">
-                <a href="mutation/index.html">View Mutation Report</a>
+                <a href="mutation/mutation-report.html">View Mutation Report</a>
               </div>
             </div>
           </body>
