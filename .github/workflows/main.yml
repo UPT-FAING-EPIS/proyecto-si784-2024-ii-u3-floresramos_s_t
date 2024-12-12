@@ -72,19 +72,23 @@ jobs:
           dotnet test --filter "Category=BDD" \
             --no-build \
             --verbosity normal \
-            --logger "trx;LogFileName=TestResults/bdd-results.trx"
+            --logger trx \
+            --results-directory TestResults/
 
       - name: Process BDD Results
         if: always()
         run: |
           cd PROYECTO_PDF
-          if [ -f "TestResults/bdd-results.trx" ]; then
+          # Encontrar el archivo de resultados más reciente
+          TEST_RESULT_FILE=$(find TestResults -name "*.trx" -type f -exec ls -t {} + | head -n 1)
+          
+          if [ -n "$TEST_RESULT_FILE" ]; then
             echo "# BDD Test Results" >> $GITHUB_STEP_SUMMARY
             
             # Extraer estadísticas
-            total=$(grep -c "<UnitTestResult" TestResults/bdd-results.trx)
-            passed=$(grep -c 'outcome="Passed"' TestResults/bdd-results.trx)
-            failed=$(grep -c 'outcome="Failed"' TestResults/bdd-results.trx)
+            total=$(grep -c "<UnitTestResult" "$TEST_RESULT_FILE")
+            passed=$(grep -c 'outcome="Passed"' "$TEST_RESULT_FILE")
+            failed=$(grep -c 'outcome="Failed"' "$TEST_RESULT_FILE")
             
             # Publicar anotaciones
             echo "::notice title=BDD Summary::Total: $total | ✅ Passed: $passed | ❌ Failed: $failed"
@@ -101,9 +105,13 @@ jobs:
                   echo "::warning title=Test::❌ $test_name"
                 fi
               fi
-            done < <(grep "<UnitTestResult" TestResults/bdd-results.trx)
+            done < <(grep "<UnitTestResult" "$TEST_RESULT_FILE")
+            
+            # Debug info
+            echo "::notice title=Debug::Found test result file at $TEST_RESULT_FILE"
           else
-            echo "::error title=BDD Tests::No test results file found"
+            echo "::error title=BDD Tests::No test results file found in TestResults directory"
+            ls -la TestResults/
           fi
 
       - name: Install SpecFlow Plus LivingDoc
