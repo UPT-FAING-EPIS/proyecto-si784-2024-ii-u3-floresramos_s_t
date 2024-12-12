@@ -1,3 +1,5 @@
+Diagrama de clases
+
 ```mermaid
 classDiagram
 
@@ -43,3 +45,17 @@ Usuario : +String Password
 Usuario <-- DetalleSuscripcion
 
 ```
+Diagrama de casos de uso:
+
+graph TD
+    Usuario[Usuario] --> IniciarSesion[Iniciar sesión]
+    Usuario --> CerrarSesion[Cerrar sesión]
+    Usuario --> RegistrarNuevoUsuario[Registrar nuevo usuario]
+    Usuario --> SubirArchivoPDF[Subir un archivo PDF]
+    Usuario --> FusionarPDFs[Fusionar PDFs]
+    Usuario --> CortarPDFs[Cortar PDFs]
+    Usuario --> VisualizarPlanesSuscripcion[Visualizar planes de suscripción]
+    Usuario --> ActualizarSuscripcion[Actualizar suscripción]
+
+
+
