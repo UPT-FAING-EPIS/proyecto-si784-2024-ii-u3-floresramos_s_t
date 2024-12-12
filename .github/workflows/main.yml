@@ -37,11 +37,12 @@ jobs:
         run: |
           dotnet tool install --global dotnet-sonarscanner
           
-      - name: Begin SonarCloud Analysis
+           - name: Begin SonarCloud Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          cd PROYECTO_PDF
           dotnet sonarscanner begin \
             /k:"mario-flores_proyectopdf" \
             /o:"mario-flores" \
@@ -50,24 +51,24 @@ jobs:
             /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" \
             /d:sonar.coverage.exclusions="**/*Tests*.cs,**/obj/**,**/bin/**" \
             /d:sonar.exclusions="**/*.js,**/*.css,**/*.html,**/*Tests*.cs,**/obj/**,**/bin/**,**/.playwright/**" \
-            /d:sonar.sources="PROYECTO_PDF/NegocioPDF/**/*.cs" \
-            /d:sonar.tests="PROYECTO_PDF/NegocioPDF.Tests/**/*.cs" \
+            /d:sonar.sources="NegocioPDF/**/*.cs" \
+            /d:sonar.tests="NegocioPDF.Tests/**/*.cs" \
             /d:sonar.test.exclusions="**/obj/**,**/bin/**,**/*UITests*/**,**/*SubscriptionTests.cs" \
             /d:sonar.verbose=true
 
-      # Build del proyecto
       - name: Build and Test
         run: |
           cd PROYECTO_PDF
-          dotnet restore
-          dotnet build --no-restore
+          dotnet build PROYECTO_PDF.sln
           dotnet test --no-build --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage;Format=opencover"
 
       - name: End SonarCloud Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        run: |
+          cd PROYECTO_PDF
+          dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
           
       - name: ReportGenerator
         uses: danielpalme/ReportGenerator-GitHub-Action@5.3.7
