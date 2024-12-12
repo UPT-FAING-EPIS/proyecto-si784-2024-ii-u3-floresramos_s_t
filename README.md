@@ -439,3 +439,16 @@ Si se ingresa un correo o contraseña incorrectos se nos mostrara un mensaje de 
 [video_4.webm](https://github.com/user-attachments/assets/f494f317-d15e-4ec9-8e7c-7970aef15b8b)
 
 Iniciamos sesion , se nos mostrara la interfaz principal de bienvenida con su tupo de suscripcion cantidad de operaciones realizadas y podremos tener la suscribcion premiun 
+
+Bibliografias: 
+
+- Semgrep | Homepage. (s. f.). Semgrep. 
+- Datadog. (2016, 14 julio). DataDog Code Monitoring | DataDog. Datadog. 
+- Snyk. (s. f.). Developer security | Snyk. 
+
+
+### Enlace Video: 
+
+
+
+
