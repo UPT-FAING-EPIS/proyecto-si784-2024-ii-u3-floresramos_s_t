@@ -40,35 +40,29 @@ jobs:
       - name: Install Tools
         run: |
           dotnet tool install -g dotnet-stryker
-          dotnet tool install -g dotnet-reportgenerator-globaltool
         
       - name: Run Stryker
         run: |
           cd PROYECTO_PDF/NegocioPDF.Tests
           echo "Running Stryker from: $(pwd)"
           dotnet stryker || true
+          
           mkdir -p ../../reports/mutation
-          if [ -d "StrykerOutput" ]; then
-            latest_report=$(find StrykerOutput -type d -name "202*" | sort | tail -n 1)
-            if [ -d "$latest_report/reports" ]; then
-              cp -r $latest_report/reports/* ../../reports/mutation/
-              echo "Mutation report generated and copied from $latest_report"
+          
+          # Buscar y copiar el último reporte generado
+          latest_report=$(find StrykerOutput -type d -name "202*" | sort | tail -n 1)
+          if [ -d "$latest_report/reports" ]; then
+            echo "Copying mutation report from: $latest_report/reports"
+            cp -r $latest_report/reports/* ../../reports/mutation/
+            if [ -f "../../reports/mutation/mutation-report.html" ]; then
+              echo "Mutation report successfully copied"
+            else
+              echo "Failed to copy mutation-report.html"
             fi
           else
-            echo "Creating placeholder report"
+            echo "No mutation report found in $latest_report"
             echo "<html><body><h1>Mutation Report</h1><p>No results available</p></body></html>" > ../../reports/mutation/mutation-report.html
           fi
-
-      - name: Generate Coverage Report
-        run: |
-          cd PROYECTO_PDF/NegocioPDF.Tests
-          echo "Current directory: $(pwd)"
-          ls -la TestResults/
-          dotnet tool run reportgenerator \
-            "-reports:./*/*/*/coverage.cobertura.xml" \
-            "-targetdir:../../reports/coverage" \
-            "-reporttypes:Html"
-          echo "Coverage report generated"
       # Security Analysis
       - name: Run Semgrep
         run: |
