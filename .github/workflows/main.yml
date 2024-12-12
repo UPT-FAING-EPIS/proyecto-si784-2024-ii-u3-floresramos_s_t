@@ -34,38 +34,36 @@ jobs:
           
       - name: Run tests with coverage
         run: |
-          cd PROYECTO_PDF
-          dotnet test --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage"
-          
-      - name: ReportGenerator
-        uses: danielpalme/ReportGenerator-GitHub-Action@5.3.7
-        with:
-          reports: '**/PROYECTO_PDF/**/coverage.cobertura.xml'
-          targetdir: coveragereport
-          reporttypes: Html;MarkdownSummary;MarkdownAssembliesSummary;MarkdownSummaryGithub
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          dotnet test --collect:"XPlat Code Coverage"
 
-      - name: Install Stryker
-        run: dotnet tool install -g dotnet-stryker
+      - name: Install Tools
+        run: |
+          dotnet tool install -g dotnet-stryker
+          dotnet tool install -g dotnet-reportgenerator-globaltool
         
       - name: Run Stryker
         run: |
-          cd PROYECTO_PDF
-          echo "Current directory: $(pwd)"
-          ls -la
-          dotnet stryker --solution "PROYECTOPDF.sln" --project "NegocioPDF.Tests.csproj" --reporter "html" || true
-          mkdir -p ../reports/mutation
-          if [ -d "NegocioPDF.Tests/StrykerOutput/reports" ]; then
-            cp -r NegocioPDF.Tests/StrykerOutput/reports/* ../reports/mutation/
-            echo "Mutation report generated and copied"
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          echo "Running Stryker from: $(pwd)"
+          dotnet stryker || true
+          mkdir -p ../../reports/mutation
+          if [ -d "StrykerOutput" ]; then
+            latest_report=$(find StrykerOutput -type d -name "202*" | sort | tail -n 1)
+            if [ -d "$latest_report/reports" ]; then
+              cp -r $latest_report/reports/* ../../reports/mutation/
+              echo "Mutation report generated and copied from $latest_report"
+            fi
           else
             echo "Creating placeholder report"
-            echo "<html><body><h1>Mutation Report</h1><p>No results available</p></body></html>" > ../reports/mutation/mutation-report.html
+            echo "<html><body><h1>Mutation Report</h1><p>No results available</p></body></html>" > ../../reports/mutation/mutation-report.html
           fi
 
-      - name: Prepare Reports Directory
+      - name: Generate Coverage Report
         run: |
-          mkdir -p reports/coverage
-          cp -r coveragereport/* reports/coverage/
+          cd PROYECTO_PDF/NegocioPDF.Tests
+          ReportGenerator "-reports:./*/*/*/coverage.cobertura.xml" "-targetdir:../../reports/coverage" -reporttypes:HTML
+          echo "Coverage report generated"
 
       # Security Analysis
       - name: Run Semgrep
