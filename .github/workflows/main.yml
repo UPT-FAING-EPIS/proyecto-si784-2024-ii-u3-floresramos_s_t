@@ -59,7 +59,7 @@ jobs:
       - name: Build and Test
         run: |
           cd PROYECTO_PDF
-          dotnet build PROYECTO_PDF.sln
+          dotnet build PROYECTOPDF.sln
           dotnet test --no-build --filter "FullyQualifiedName!~UITests.SubscriptionTests" --collect:"XPlat Code Coverage;Format=opencover"
 
       - name: End SonarCloud Analysis
