@@ -30,7 +30,7 @@
 <div align="center">
   Sistema: "PDF SOLUTIONS"
 
-  ## **Informe de Factibilidad**
+  ## **Informe de Calidad y Pruebas de Software**
 
   ## **Versión: "2.0"**
 </div>
