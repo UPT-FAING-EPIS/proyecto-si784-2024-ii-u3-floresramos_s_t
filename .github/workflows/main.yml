@@ -62,9 +62,13 @@ jobs:
       - name: Generate Coverage Report
         run: |
           cd PROYECTO_PDF/NegocioPDF.Tests
-          ReportGenerator "-reports:./*/*/*/coverage.cobertura.xml" "-targetdir:../../reports/coverage" -reporttypes:HTML
+          echo "Current directory: $(pwd)"
+          ls -la TestResults/
+          dotnet tool run reportgenerator \
+            "-reports:./*/*/*/coverage.cobertura.xml" \
+            "-targetdir:../../reports/coverage" \
+            "-reporttypes:Html"
           echo "Coverage report generated"
-
       # Security Analysis
       - name: Run Semgrep
         run: |
