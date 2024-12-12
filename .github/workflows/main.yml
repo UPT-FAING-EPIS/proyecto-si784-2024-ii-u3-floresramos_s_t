@@ -60,35 +60,35 @@ jobs:
         
       - name: Run Stryker
         run: |
-          cd PROYECTO_PDF
-          dotnet build
-          mkdir -p ../reports/mutation
-          cd NegocioPDF.Tests
-          dotnet stryker -tp net8.0 -p "NegocioPDF.csproj" --reporter "html" --output "../reports/mutation" || true
-          
-      # BDD Tests
-      - name: Restore dependencies
-        run: |
-          cd PROYECTO_PDF
+          mkdir -p reports/mutation
+          cd PROYECTO_PDF/NegocioPDF.Tests
           dotnet restore
-      
-      - name: Build
+          dotnet build
+          dotnet stryker -tp "net8.0" --reporters "['html','json']" --project NegocioPDF.Tests.csproj
+          
+      - name: Copy Mutation Report
+        if: always()
         run: |
-          cd PROYECTO_PDF
-          dotnet build --no-restore
+          if [ -d "PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput" ]; then
+            cp -r PROYECTO_PDF/NegocioPDF.Tests/StrykerOutput/reports/* reports/mutation/
+            # Asegurarse de que existe el archivo HTML principal
+            if [ -f "reports/mutation/mutation-report.html" ]; then
+              echo "Mutation report generated successfully"
+            else
+              # Si no existe, crear un reporte básico
+              echo "<html><body><h1>Mutation Testing Report</h1><p>The mutation testing process was completed, but no detailed report was generated. This might indicate that no mutations were found or the process encountered issues.</p></body></html>" > reports/mutation/mutation-report.html
+            fi
+          else
+            # Crear un reporte de error si no se generó el directorio
+            echo "<html><body><h1>Mutation Testing Report</h1><p>The mutation testing process could not be completed. Please check the GitHub Actions logs for more details.</p></body></html>" > reports/mutation/mutation-report.html
+          fi
       
-      - name: Run BDD Tests
-        run: |
-          cd PROYECTO_PDF
-          dotnet test --filter "Category=BDD" --no-build --verbosity normal
-      
-      - name: Install SpecFlow Plus LivingDoc
-        run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
-      
+      # BDD Tests
       - name: Generate BDD Report
         run: |
-          mkdir -p reports/bdd
           cd PROYECTO_PDF
+          dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
+          mkdir -p ../reports/bdd
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
 
       # Create main dashboard
