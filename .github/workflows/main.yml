@@ -44,7 +44,7 @@ jobs:
           targetdir: coveragereport
           reporttypes: Html;MarkdownSummary;MarkdownAssembliesSummary;MarkdownSummaryGithub
 
-       - name: Install Stryker
+      - name: Install Stryker
         run: dotnet tool install -g dotnet-stryker
         
       - name: Run Stryker
