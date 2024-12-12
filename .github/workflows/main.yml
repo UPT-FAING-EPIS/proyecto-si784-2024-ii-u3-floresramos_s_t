@@ -69,8 +69,43 @@ jobs:
         run: |
           cd PROYECTO_PDF
           mkdir -p TestResults
-          dotnet test --filter "Category=BDD" --no-build --verbosity normal --logger "trx;LogFileName=TestResults/bdd-results.trx"
-      
+          dotnet test --filter "Category=BDD" \
+            --no-build \
+            --verbosity normal \
+            --logger "trx;LogFileName=TestResults/bdd-results.trx"
+
+      - name: Process BDD Results
+        if: always()
+        run: |
+          cd PROYECTO_PDF
+          if [ -f "TestResults/bdd-results.trx" ]; then
+            echo "# BDD Test Results" >> $GITHUB_STEP_SUMMARY
+            
+            # Extraer estadísticas
+            total=$(grep -c "<UnitTestResult" TestResults/bdd-results.trx)
+            passed=$(grep -c 'outcome="Passed"' TestResults/bdd-results.trx)
+            failed=$(grep -c 'outcome="Failed"' TestResults/bdd-results.trx)
+            
+            # Publicar anotaciones
+            echo "::notice title=BDD Summary::Total: $total | ✅ Passed: $passed | ❌ Failed: $failed"
+            
+            # Extraer y mostrar resultados individuales
+            while IFS= read -r line; do
+              if [[ $line =~ testName=\"([^\"]*)\".*outcome=\"([^\"]*)\" ]]; then
+                test_name="${BASH_REMATCH[1]}"
+                outcome="${BASH_REMATCH[2]}"
+                
+                if [ "$outcome" = "Passed" ]; then
+                  echo "::notice title=Test::✅ $test_name"
+                else
+                  echo "::warning title=Test::❌ $test_name"
+                fi
+              fi
+            done < <(grep "<UnitTestResult" TestResults/bdd-results.trx)
+          else
+            echo "::error title=BDD Tests::No test results file found"
+          fi
+
       - name: Install SpecFlow Plus LivingDoc
         run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
       
@@ -78,42 +113,10 @@ jobs:
         run: |
           mkdir -p reports/bdd
           cd PROYECTO_PDF
-          livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
-
-      # Extract and format BDD results for summary
-      - name: Run BDD Tests and Process Results
-        run: |
-          cd PROYECTO_PDF
-          
-          # Ejecutar las pruebas
-          dotnet test --filter "Category=BDD" --no-build --verbosity normal \
-            --logger "trx;LogFileName=TestResults/bdd-results.trx" \
-            --logger "console;verbosity=detailed"
-          
-          # Procesar resultados del archivo TRX
-          if [ -f "TestResults/bdd-results.trx" ]; then
-            # Extraer estadísticas generales
-            total_tests=$(grep -c "<UnitTestResult" TestResults/bdd-results.trx)
-            passed_tests=$(grep -c 'outcome="Passed"' TestResults/bdd-results.trx)
-            failed_tests=$(grep -c 'outcome="Failed"' TestResults/bdd-results.trx)
-            
-            echo "::notice title=BDD Test Summary::Total Tests: ${total_tests}"
-            echo "::notice title=BDD Results::✅ Passed: ${passed_tests} | ❌ Failed: ${failed_tests}"
-            
-            # Extraer y mostrar resultados individuales
-            grep "<UnitTestResult" TestResults/bdd-results.trx | while read -r line ; do
-              test_name=$(echo $line | grep -o 'testName="[^"]*"' | cut -d'"' -f2)
-              outcome=$(echo $line | grep -o 'outcome="[^"]*"' | cut -d'"' -f2)
-              
-              if [ "$outcome" = "Passed" ]; then
-                echo "::notice title=Test Result::✅ ${test_name}"
-              else
-                echo "::warning title=Test Result::❌ ${test_name}"
-              fi
-            done
-          else
-            echo "::error title=BDD Tests::No test results file found"
-          fi
+          livingdoc test-assembly \
+            ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll \
+            -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json \
+            -o ../reports/bdd/bdd-report.html
 
 
       # Create main dashboard
