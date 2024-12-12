@@ -290,11 +290,11 @@ jobs:
             /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
             /d:sonar.host.url="https://sonarcloud.io" `
             /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" `
-            /d:sonar.coverage.exclusions="**/*Tests*.cs,**/obj/**,**/bin/**" `
-            /d:sonar.exclusions="**/*.js,**/*.css,**/*.html,**/*Tests*.cs,**/obj/**,**/bin/**,**/.playwright/**" `
+            /d:sonar.coverage.exclusions="**/*Tests*.cs,**/obj/**,**/bin/**,**/UITests/**" `
+            /d:sonar.exclusions="**/*.js,**/*.css,**/*.html,**/*Tests*.cs,**/obj/**,**/bin/**,**/.playwright/**,**/UITests/**" `
             /d:sonar.sources="PROYECTO_PDF/NegocioPDF/**/*.cs" `
             /d:sonar.tests="PROYECTO_PDF/NegocioPDF.Tests/**/*.cs" `
-            /d:sonar.test.exclusions="**/obj/**,**/bin/**,**/*UITests*/**,**/*SubscriptionTests.cs" `
+            /d:sonar.test.exclusions="**/obj/**,**/bin/**,**/*UITests*/**,**/*SubscriptionTests.cs,**/UITests/**" `
             /d:sonar.verbose=true
 
       - name: Build NegocioPDF
