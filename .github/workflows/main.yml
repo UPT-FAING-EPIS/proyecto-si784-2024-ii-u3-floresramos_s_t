@@ -85,7 +85,6 @@ jobs:
             echo "<html><body><h1>Mutation Report</h1><p>No results available</p></body></html>" > ../../reports/mutation/mutation-report.html
           fi
 
-      # Security Analysis
       - name: Run Semgrep
         run: |
           docker pull semgrep/semgrep
@@ -100,7 +99,6 @@ jobs:
           cd reports/security
           prospector-html --input semgrep.json --output semgrep-report.html --filter semgrep || true
       
-      # Snyk Analysis
       - uses: snyk/actions/setup@master
       
       - name: Install snyk-to-html
@@ -113,7 +111,6 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      # BDD Tests
       - name: Install SpecFlow Plus LivingDoc
         run: dotnet tool install --global SpecFlow.Plus.LivingDoc.CLI
       
@@ -123,8 +120,6 @@ jobs:
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
 
-      # Create Dashboard
-       # Create Dashboard with Coverage Link
       - name: Create Dashboard
         run: |
           cat > reports/index.html << 'EOF'
@@ -209,11 +204,17 @@ jobs:
                 <a href="mutation/mutation-report.html">View Mutation Report</a>
               </div>
             </div>
+            
+            <div class="card">
+              <h2>SonarQube Analysis</h2>
+              <div class="report-links">
+                <a href="https://sonarcloud.io/dashboard?id=mario-flores_proyectopdf" target="_blank">View SonarQube Dashboard</a>
+              </div>
+            </div>
           </body>
           </html>
           EOF
 
-      # Extract coverage metrics
       - name: Extract Coverage Metrics
         run: |
           if [ -f coveragereport/Summary.md ]; then
@@ -223,7 +224,6 @@ jobs:
             echo "::notice title=Coverage Results::Line Coverage: ${total}, Branch Coverage: ${branch}, Method Coverage: ${method}"
           fi
 
-      # Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -251,7 +251,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Limpiar carpetas de Playwright
       - name: Clean Playwright folders
         shell: powershell
         run: |
@@ -298,7 +297,6 @@ jobs:
             /d:sonar.test.exclusions="**/obj/**,**/bin/**,**/*UITests*/**,**/*SubscriptionTests.cs" `
             /d:sonar.verbose=true
 
-      # Build y Test específicos
       - name: Build NegocioPDF
         shell: powershell
         run: |
@@ -323,13 +321,6 @@ jobs:
             --verbosity normal `
             --filter "FullyQualifiedName!~UITests.SubscriptionTests"
 
-      # Limpieza final
-      - name: Clean Playwright folders
-        if: always()
-        shell: powershell
-        run: |
-          Get-ChildItem -Path . -Directory -Recurse -Filter ".playwright" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-
       - name: End SonarCloud Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -337,3 +328,14 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+      - name: Extract SonarQube Metrics
+        run: |
+          response=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: "https://sonarcloud.io/api/measures/component?component=mario-flores_proyectopdf&metricKeys=coverage,code_smells,bugs")
+          coverage=$(echo $response | jq -r '.component.measures[] | select(.metric=="coverage") | .value')
+          code_smells=$(echo $response | jq -r '.component.measures[] | select(.metric=="code_smells") | .value')
+          bugs=$(echo $response | jq -r '.component.measures[] | select(.metric=="bugs") | .value')
+          
+          echo "Coverage: $coverage%"
+          echo "Code Smells: $code_smells"
+          echo "Bugs: $bugs"
