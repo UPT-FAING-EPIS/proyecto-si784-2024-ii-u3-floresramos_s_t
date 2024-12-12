@@ -56,31 +56,57 @@ jobs:
       
       # Mutation Testing
       # Mutation Testing
+     # Mutation Testing
       - name: Install Stryker
         run: dotnet tool install -g dotnet-stryker
         
       - name: Run Stryker and Copy Report
         run: |
-          cd PROYECTO_PDF/NegocioPDF.Tests
-          dotnet stryker -tp net8.0 || true
+          echo "Current directory: $(pwd)"
+          cd PROYECTO_PDF
+          echo "Project directory contents:"
+          ls -la
+          echo "Running Stryker..."
+          cd NegocioPDF.Tests
+          echo "Test project directory contents:"
+          ls -la
+          # Ejecutar Stryker con la ruta completa al proyecto
+          dotnet stryker --project-file "NegocioPDF.Tests.csproj" --reporters "['html']" --project-name "NegocioPDF" || true
           
-          # Verificar si se generó el reporte y copiarlo
+          # Verificar y copiar el reporte
           if [ -d "StrykerOutput" ]; then
+            echo "StrykerOutput directory exists"
+            echo "Contents of StrykerOutput:"
+            ls -R StrykerOutput/
+            
             mkdir -p ../../reports/mutation
-            cp -r StrykerOutput/reports/* ../../reports/mutation/
-            # Asegurarse de que el archivo HTML principal exista
-            if [ -f "../../reports/mutation/mutation-report.html" ]; then
-              echo "Mutation report copied successfully"
+            if [ -d "StrykerOutput/reports" ]; then
+              echo "Copying mutation reports..."
+              cp -r StrykerOutput/reports/* ../../reports/mutation/
+              echo "Contents of mutation reports directory:"
+              ls -la ../../reports/mutation/
             else
-              echo "Warning: mutation-report.html not found"
-              # Copiar todo el contenido del directorio para debug
-              ls -la StrykerOutput/reports/
+              echo "No reports directory found in StrykerOutput"
             fi
           else
-            echo "Warning: StrykerOutput directory not found"
-            # Crear un reporte placeholder si falló la generación
+            echo "Creating placeholder report..."
             mkdir -p ../../reports/mutation
-            echo "<html><body><h1>Mutation Test Results</h1><p>No results available at this time.</p></body></html>" > ../../reports/mutation/mutation-report.html
+            cat > ../../reports/mutation/mutation-report.html << 'EOF'
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Mutation Test Results</title>
+                <style>
+                    body { font-family: Arial; padding: 20px; }
+                    .error { color: red; }
+                </style>
+            </head>
+            <body>
+                <h1>Mutation Test Results</h1>
+                <p class="error">The mutation test report could not be generated. Please check the CI/CD logs for more information.</p>
+            </body>
+            </html>
+            EOF
           fi
       
       # BDD Tests
