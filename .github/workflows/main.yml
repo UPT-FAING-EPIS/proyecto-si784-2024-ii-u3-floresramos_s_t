@@ -52,7 +52,7 @@ jobs:
           cd PROYECTO_PDF/NegocioPDF.Tests
           echo "Current directory: $(pwd)"
           ls -la
-          dotnet stryker -tp net8.0 || true
+          dotnet stryker -p "NegocioPDF.Tests.csproj" --reporter "html" || true
           mkdir -p ../../reports/mutation
           if [ -d "StrykerOutput/reports" ]; then
             cp -r StrykerOutput/reports/* ../../reports/mutation/
