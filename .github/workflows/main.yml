@@ -122,6 +122,7 @@ jobs:
   ui-test:
     name: UI Tests with Playwright
     runs-on: ubuntu-latest
+    needs: [tests-and-coverage]  # Asegura que se ejecute después de los otros tests
     steps:
         - uses: actions/checkout@v4
   
@@ -129,6 +130,13 @@ jobs:
           uses: actions/setup-dotnet@v4
           with:
             dotnet-version: ${{ env.DOTNET_VERSION }}
+
+        # Descargar los reportes existentes
+        - name: Download existing reports
+          uses: actions/download-artifact@v4
+          with:
+            name: reports
+            path: reports
 
         - name: Restore dependencies
           working-directory: PROYECTO_PDF
@@ -148,21 +156,25 @@ jobs:
         - name: Run Playwright tests
           working-directory: PROYECTO_PDF/NegocioPDF.Tests
           run: |
-            mkdir -p reports/playwright
-            dotnet test --filter "FullyQualifiedName~UITests.SubscriptionTests" --logger "trx;LogFileName=playwright-results.trx" || true
+            mkdir -p ../../reports/playwright
+            dotnet test --filter "FullyQualifiedName~UITests.SubscriptionTests" --logger "trx;LogFileName=../../reports/playwright/playwright-results.trx" || true
 
         - name: Copy Test Results
           if: always()
           run: |
-            mkdir -p reports/playwright
-            if [ -d "PROYECTO_PDF/NegocioPDF.Tests/TestResults" ]; then
-              cp -r PROYECTO_PDF/NegocioPDF.Tests/TestResults/* reports/playwright/
-            fi
             if [ -d "PROYECTO_PDF/NegocioPDF.Tests/videos" ]; then
               cp -r PROYECTO_PDF/NegocioPDF.Tests/videos reports/playwright/
             fi
             find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec cp {} reports/playwright/ \;
 
+        # Subir todos los reportes actualizados
+        - name: Upload updated reports
+          if: always()
+          uses: actions/upload-artifact@v4
+          with:
+            name: reports
+            path: reports
+            overwrite: true
         - name: Create Dashboard
           run: |
             cat > reports/index.html << 'EOF'
