@@ -148,6 +148,25 @@ jobs:
         - name: Build project
           working-directory: PROYECTO_PDF
           run: dotnet build --configuration Release --no-restore
+        # Agregar estos pasos para iniciar la aplicación
+        - name: Start application
+          working-directory: PROYECTO_PDF/PROYECTOPDF
+          run: |
+            dotnet build
+            nohup dotnet run --urls "http://localhost:5260" &
+            echo "Waiting for application to start..."
+            # Esperar a que la aplicación esté lista
+            timeout=60
+            while ! curl -sSf http://localhost:5260 >/dev/null 2>&1; do
+              if [ "$timeout" -le "0" ]; then
+                echo "Application failed to start"
+                exit 1
+              fi
+              echo "Waiting... ($timeout seconds remaining)"
+              sleep 1
+              timeout=$((timeout-1))
+            done
+            echo "Application is running!"
 
         - name: Install Playwright and dependencies
           working-directory: PROYECTO_PDF/NegocioPDF.Tests
@@ -247,6 +266,10 @@ jobs:
             name: reports-artifact
             path: reports
             overwrite: true
+        - name: Stop application
+          if: always()
+          run: |
+            pkill -f "dotnet run --urls http://localhost:5260" || true
         - name: Create Dashboard
           run: |
             cat > reports/index.html << 'EOF'
