@@ -260,79 +260,101 @@ jobs:
                         border-bottom: 2px solid #2196F3;
                         padding-bottom: 10px;
                     }
-                    h3 {
-                        color: #666;
-                        margin: 10px 0;
-                    }
                     .test-name {
                         font-weight: bold;
                         color: #2196F3;
                         margin-bottom: 10px;
                     }
+                    .timestamp {
+                        color: #666;
+                        font-size: 0.9em;
+                        margin-top: 5px;
+                    }
                 </style>
             </head>
             <body>
                 <h1>Playwright Test Results</h1>
+                <div class="section">
+                    <h2>Screenshots</h2>
+                    <div id="screenshots"></div>
+                </div>
+                <div class="section">
+                    <h2>Test Videos</h2>
+                    <div id="videos"></div>
+                </div>
+            </body>
+            </html>
             EOF
         
-            # Agregar sección de screenshots
-            echo "<div class='section'><h2>Screenshots</h2>" >> reports/playwright/index.html
+            # Procesar screenshots y videos usando Python
+            python3 - << 'ENDPYTHON'
+            import os
+            import shutil
+            import glob
+            from datetime import datetime
             
-            # Mapeo de nombres de screenshots
-            declare -A screenshot_names=(
-                ["before-login-failure.png"]="Login Failure - Before Attempt"
-                ["after-login-failure.png"]="Login Failure - After Attempt"
-                ["before-registration.png"]="Registration - Before Submit"
-                ["after-registration.png"]="Registration - After Submit"
-                ["before-login.png"]="Login Success - Before Attempt"
-                ["after-login-success.png"]="Login Success - After Attempt"
-                ["premium-link-not-found.png"]="Premium Subscription - Link Check"
-                ["premium-page.png"]="Premium Subscription - Details Page"
-                ["premium-success.png"]="Premium Subscription - Success"
-            )
-        
-            # Agregar screenshots con nombres descriptivos
-            find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec sh -c '
-                for file; do
-                    filename=$(basename "$file")
-                    cp "$file" "reports/playwright/$filename"
-                    name="${screenshot_names[$filename]:-$filename}"
-                    echo "<div class=\"media-item\">
-                            <div class=\"test-name\">$name</div>
-                            <img src=\"$filename\" alt=\"$name\">
-                          </div>" >> reports/playwright/index.html
-                done
-            ' sh {} +
-        
-            # Agregar sección de videos
-            echo "</div><div class='section'><h2>Test Videos</h2>" >> reports/playwright/index.html
+            def format_name(filename):
+                # Quitar extensión
+                name = os.path.splitext(filename)[0]
+                
+                # Convertir guiones y guiones bajos a espacios
+                name = name.replace('-', ' ').replace('_', ' ')
+                
+                # Insertar espacios antes de mayúsculas
+                formatted = ''.join(' ' + c if c.isupper() else c for c in name).strip()
+                
+                # Capitalizar primera letra de cada palabra
+                formatted = ' '.join(word.capitalize() for word in formatted.split())
+                
+                return formatted
             
-            # Mapeo de nombres de videos
-            declare -A video_names=(
-                ["LoginFailure_ShouldShowError"]="Login Failure Test"
-                ["Register_NewUser"]="User Registration Test"
-                ["TestPremiumSubscriptionFlow"]="Premium Subscription Flow Test"
-                ["LoginSuccess_ShouldShowOperationsButton"]="Login Success Test"
-            )
-        
-            # Copiar y renombrar videos
-            find PROYECTO_PDF/NegocioPDF.Tests -name "*.webm" | while read -r video; do
-                for test_name in "${!video_names[@]}"; do
-                    if grep -q "$test_name" <<< "$video"; then
-                        friendly_name="${video_names[$test_name]}"
-                        new_name="$test_name.webm"
-                        cp "$video" "reports/playwright/$new_name"
-                        echo "<div class=\"media-item\">
-                                <div class=\"test-name\">$friendly_name</div>
-                                <video controls src=\"$new_name\"></video>
-                              </div>" >> reports/playwright/index.html
-                        break
-                    fi
-                done
-            done
-        
-            # Cerrar HTML
-            echo "</div></body></html>" >> reports/playwright/index.html
+            # Procesar screenshots
+            screenshots_html = []
+            for png_file in glob.glob("PROYECTO_PDF/NegocioPDF.Tests/*.png"):
+                filename = os.path.basename(png_file)
+                friendly_name = format_name(filename)
+                timestamp = datetime.fromtimestamp(os.path.getmtime(png_file)).strftime('%Y-%m-%d %H:%M:%S')
+                
+                shutil.copy2(png_file, f"reports/playwright/{filename}")
+                screenshots_html.append(f'''
+                    <div class="media-item">
+                        <div class="test-name">{friendly_name}</div>
+                        <img src="{filename}" alt="{friendly_name}">
+                        <div class="timestamp">Captured: {timestamp}</div>
+                    </div>
+                ''')
+            
+            # Procesar videos
+            videos_html = []
+            for webm_file in glob.glob("PROYECTO_PDF/NegocioPDF.Tests/**/*.webm", recursive=True):
+                filename = os.path.basename(webm_file)
+                friendly_name = format_name(filename)
+                
+                if not friendly_name.endswith('Test'):
+                    friendly_name += ' Test'
+                    
+                timestamp = datetime.fromtimestamp(os.path.getmtime(webm_file)).strftime('%Y-%m-%d %H:%M:%S')
+                new_name = filename
+                
+                shutil.copy2(webm_file, f"reports/playwright/{new_name}")
+                videos_html.append(f'''
+                    <div class="media-item">
+                        <div class="test-name">{friendly_name}</div>
+                        <video controls src="{new_name}"></video>
+                        <div class="timestamp">Recorded: {timestamp}</div>
+                    </div>
+                ''')
+            
+            # Actualizar el HTML
+            with open('reports/playwright/index.html', 'r') as f:
+                html = f.read()
+            
+            html = html.replace('<div id="screenshots"></div>', ''.join(screenshots_html))
+            html = html.replace('<div id="videos"></div>', ''.join(videos_html))
+            
+            with open('reports/playwright/index.html', 'w') as f:
+                f.write(html)
+            ENDPYTHON
         - name: Upload Updated Reports
           if: always()
           uses: actions/upload-artifact@v4
