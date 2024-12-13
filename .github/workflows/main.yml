@@ -187,13 +187,15 @@ jobs:
         - name: Copy Test Results
           if: always()
           run: |
-            # Copiar capturas de pantalla
-            find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec cp {} reports/playwright/ \;
+            # Crear estructura de directorios
+            mkdir -p reports/playwright/videos
+            mkdir -p reports/playwright/screenshots
             
-            # Copiar videos si existen
-            if [ -d "PROYECTO_PDF/NegocioPDF.Tests/videos" ]; then
-              cp -r PROYECTO_PDF/NegocioPDF.Tests/videos reports/playwright/
-            fi
+            # Copiar screenshots
+            find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec cp {} reports/playwright/screenshots/ \;
+            
+            # Copiar videos (incluyendo subdirectorios)
+            find PROYECTO_PDF/NegocioPDF.Tests -name "*.webm" -exec cp --parents {} reports/playwright/videos/ \;
 
         - name: Generate HTML Report
           run: |
@@ -203,11 +205,41 @@ jobs:
             <head>
                 <title>Playwright Test Results</title>
                 <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .container { max-width: 1200px; margin: 0 auto; }
-                    .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-                    img { max-width: 100%; margin: 10px 0; }
-                    .video { margin: 10px 0; }
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        margin: 20px;
+                        background-color: #f5f5f5;
+                    }
+                    .container { 
+                        max-width: 1200px; 
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+                    .section { 
+                        margin: 20px 0; 
+                        padding: 20px; 
+                        border: 1px solid #ddd; 
+                        border-radius: 5px;
+                        background-color: white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    }
+                    img { 
+                        max-width: 100%; 
+                        margin: 10px 0;
+                        border: 1px solid #ddd;
+                        border-radius: 4px;
+                    }
+                    .video { 
+                        width: 100%;
+                        margin: 10px 0;
+                        border: 1px solid #ddd;
+                        border-radius: 4px;
+                    }
+                    h2 {
+                        color: #333;
+                        border-bottom: 2px solid #2196F3;
+                        padding-bottom: 10px;
+                    }
                 </style>
             </head>
             <body>
@@ -218,30 +250,33 @@ jobs:
                         <div id="screenshots"></div>
                     </div>
                     <div class="section">
-                        <h2>Videos</h2>
+                        <h2>Test Videos</h2>
                         <div id="videos"></div>
                     </div>
                 </div>
                 <script>
-                    // Script para cargar dinámicamente las imágenes y videos
-                    fetch('.')
+                    // Cargar screenshots
+                    fetch('./screenshots')
                         .then(response => response.text())
                         .then(text => {
                             const parser = new DOMParser();
                             const doc = parser.parseFromString(text, 'text/html');
-                            
-                            // Procesar screenshots
                             const screenshots = Array.from(doc.querySelectorAll('a'))
                                 .filter(a => a.href.endsWith('.png'))
                                 .map(a => a.href);
                             
                             screenshots.forEach(src => {
                                 const img = document.createElement('img');
-                                img.src = src.split('/').pop();
+                                img.src = 'screenshots/' + src.split('/').pop();
                                 document.getElementById('screenshots').appendChild(img);
                             });
-                            
-                            // Procesar videos
+                        });
+                                        // Cargar videos
+                    fetch('./videos')
+                        .then(response => response.text())
+                        .then(text => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(text, 'text/html');
                             const videos = Array.from(doc.querySelectorAll('a'))
                                 .filter(a => a.href.endsWith('.webm'))
                                 .map(a => a.href);
@@ -264,7 +299,10 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
             name: reports-artifact
-            path: reports
+            path: |
+              reports/**/*.png
+              reports/**/*.webm
+              reports/**/*.html
             overwrite: true
         - name: Stop application
           if: always()
