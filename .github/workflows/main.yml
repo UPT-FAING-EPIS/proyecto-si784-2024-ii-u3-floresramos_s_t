@@ -244,7 +244,7 @@ jobs:
                 </div>
               <div class="card">
                 <h2>Playwright Test Results</h2>
-                <a href="reports/playwright-test-results.json">View Playwright Test Results</a>
+                 <a href="reports/playwright/playwright-test-results.json">View Playwright Test Results</a>
               </div>
   
               </div>
