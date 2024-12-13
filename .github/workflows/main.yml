@@ -197,6 +197,27 @@ jobs:
             # Copiar videos a su directorio
             find PROYECTO_PDF/NegocioPDF.Tests -name "*.webm" -exec cp {} reports/playwright/videos/ \;
 
+        - name: Copy Test Results and Generate File Lists
+          if: always()
+          run: |
+            # Crear estructura de directorios
+            mkdir -p reports/playwright/screenshots
+            mkdir -p reports/playwright/videos
+            
+            # Copiar archivos
+            cp PROYECTO_PDF/NegocioPDF.Tests/*.png reports/playwright/screenshots/ || true
+            cp PROYECTO_PDF/NegocioPDF.Tests/videos/*.webm reports/playwright/videos/ || true
+            
+            # Generar listas de archivos
+            cd reports/playwright
+            echo "var screenshotFiles = [" > file-lists.js
+            ls screenshots/*.png 2>/dev/null | sed "s/^/'/" | sed "s/$/'/" | paste -sd "," - >> file-lists.js
+            echo "];" >> file-lists.js
+            
+            echo "var videoFiles = [" >> file-lists.js
+            ls videos/*.webm 2>/dev/null | sed "s/^/'/" | sed "s/$/'/" | paste -sd "," - >> file-lists.js
+            echo "];" >> file-lists.js
+        
         - name: Generate HTML Report
           run: |
             cat > reports/playwright/index.html << 'EOF'
@@ -234,20 +255,11 @@ jobs:
                         border-radius: 4px;
                         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                     }
-                    .media-item img {
+                    img, video {
                         width: 100%;
-                        height: auto;
+                        max-width: 100%;
                         border-radius: 4px;
-                    }
-                    .media-item video {
-                        width: 100%;
-                        border-radius: 4px;
-                    }
-                    h2 {
-                        margin: 0;
-                        padding-bottom: 10px;
-                        border-bottom: 2px solid #2196F3;
-                        color: #333;
+                        display: block;
                     }
                 </style>
             </head>
@@ -265,67 +277,45 @@ jobs:
                         <div class="media-grid" id="videos"></div>
                     </div>
                 </div>
-        
+                
+                <script src="file-lists.js"></script>
                 <script>
-                    async function loadMedia() {
-                        // Función para cargar y mostrar media
-                        async function loadFiles(path, container, type) {
-                            try {
-                                const response = await fetch(path);
-                                const text = await response.text();
-                                const parser = new DOMParser();
-                                const doc = parser.parseFromString(text, 'text/html');
-                                
-                                const links = Array.from(doc.querySelectorAll('a'));
-                                const files = links
-                                    .map(a => a.href)
-                                    .filter(href => {
-                                        const ext = type === 'image' ? '.png' : '.webm';
-                                        return href.toLowerCase().endsWith(ext);
-                                    })
-                                    .map(href => href.split('/').pop());
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const screenshotsContainer = document.getElementById('screenshots');
+                        const videosContainer = document.getElementById('videos');
         
-                                files.forEach(filename => {
-                                    const div = document.createElement('div');
-                                    div.className = 'media-item';
-        
-                                    if (type === 'image') {
-                                        const img = document.createElement('img');
-                                        img.src = filename;
-                                        img.alt = filename;
-                                        div.appendChild(img);
-                                    } else {
-                                        const video = document.createElement('video');
-                                        video.src = `videos/${filename}`;
-                                        video.controls = true;
-                                        div.appendChild(video);
-                                    }
-        
-                                    container.appendChild(div);
-                                });
-        
-                                // Mostrar mensaje si no hay archivos
-                                if (files.length === 0) {
-                                    container.innerHTML = `<p>No ${type}s available</p>`;
-                                }
-                            } catch (error) {
-                                console.error(`Error loading ${type}s:`, error);
-                                container.innerHTML = `<p>Error loading ${type}s</p>`;
-                            }
+                        if (typeof screenshotFiles !== 'undefined' && screenshotFiles.length > 0) {
+                            screenshotFiles.forEach(file => {
+                                const div = document.createElement('div');
+                                div.className = 'media-item';
+                                const img = document.createElement('img');
+                                img.src = `screenshots/${file}`;
+                                img.alt = file;
+                                div.appendChild(img);
+                                screenshotsContainer.appendChild(div);
+                            });
+                        } else {
+                            screenshotsContainer.innerHTML = '<p>No screenshots available</p>';
                         }
         
-                        // Cargar screenshots y videos
-                        await loadFiles('.', document.getElementById('screenshots'), 'image');
-                        await loadFiles('videos', document.getElementById('videos'), 'video');
-                    }
-        
-                    // Iniciar carga cuando el documento esté listo
-                    document.addEventListener('DOMContentLoaded', loadMedia);
+                        if (typeof videoFiles !== 'undefined' && videoFiles.length > 0) {
+                            videoFiles.forEach(file => {
+                                const div = document.createElement('div');
+                                div.className = 'media-item';
+                                const video = document.createElement('video');
+                                video.src = `videos/${file}`;
+                                video.controls = true;
+                                div.appendChild(video);
+                                videosContainer.appendChild(div);
+                            });
+                        } else {
+                            videosContainer.innerHTML = '<p>No videos available</p>';
+                        }
+                    });
                 </script>
             </body>
             </html>
             EOF
-
         - name: Upload Updated Reports
           if: always()
           uses: actions/upload-artifact@v4
