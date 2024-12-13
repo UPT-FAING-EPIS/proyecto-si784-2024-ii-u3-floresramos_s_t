@@ -120,34 +120,37 @@ jobs:
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
   ui-test:
-      name: UI Tests with Playwright
-      runs-on: ubuntu-latest
-      steps:
+    name: UI Tests with Playwright
+    runs-on: ubuntu-latest
+    steps:
         - uses: actions/checkout@v4
-  
+    
         - name: Set up Node.js
           uses: actions/setup-node@v3
           with:
             node-version: '18.x'
-  
+    
         - name: Install Playwright dependencies directly
           run: |
             npx playwright install
-  
+    
         - name: Start application server
           run: |
             cd PROYECTO_PDF
             nohup dotnet run --urls "http://localhost:5260" > server.log 2>&1 &
             sleep 5 # Esperar para asegurarse de que la aplicación esté lista
-  
+    
+        - name: Ensure reports directory exists
+          run: mkdir -p reports
+    
         - name: Run Playwright Tests
           run: |
             npx playwright test --reporter=json > reports/playwright-test-results.json
-  
+    
         - name: Stop server
           run: |
             pkill -f "dotnet run --urls http://localhost:5260" || true
-  
+    
         - name: Process Playwright results
           run: |
             mkdir -p reports/playwright
