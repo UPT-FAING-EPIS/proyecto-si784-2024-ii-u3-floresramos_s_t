@@ -130,16 +130,24 @@ jobs:
           with:
             dotnet-version: ${{ env.DOTNET_VERSION }}
 
-        - name: Install Playwright
+        - name: Restore dependencies
+          working-directory: PROYECTO_PDF
+          run: dotnet restore
+
+        - name: Build project
+          working-directory: PROYECTO_PDF
+          run: dotnet build --configuration Release --no-restore
+
+        - name: Install Playwright and dependencies
           working-directory: PROYECTO_PDF/NegocioPDF.Tests
           run: |
             dotnet tool install --global Microsoft.Playwright.CLI
-            playwright install
+            dotnet build
+            pwsh bin/Debug/net8.0/playwright.ps1 install --with-deps
             
-        - name: Build and Test
+        - name: Run Playwright tests
           working-directory: PROYECTO_PDF/NegocioPDF.Tests
           run: |
-            dotnet build
             mkdir -p reports/playwright
             dotnet test --filter "FullyQualifiedName~UITests.SubscriptionTests" --logger "trx;LogFileName=playwright-results.trx" || true
 
@@ -153,19 +161,8 @@ jobs:
             if [ -d "PROYECTO_PDF/NegocioPDF.Tests/videos" ]; then
               cp -r PROYECTO_PDF/NegocioPDF.Tests/videos reports/playwright/
             fi
-            if [ -d "PROYECTO_PDF/NegocioPDF.Tests/*.png" ]; then
-              cp PROYECTO_PDF/NegocioPDF.Tests/*.png reports/playwright/
-            fi
+            find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec cp {} reports/playwright/ \;
 
-        - name: Upload Playwright Results
-          if: always()
-          uses: actions/upload-artifact@v3
-          with:
-            name: playwright-results
-            path: |
-              reports/playwright
-              PROYECTO_PDF/NegocioPDF.Tests/**/*.png
-              PROYECTO_PDF/NegocioPDF.Tests/videos/
         - name: Create Dashboard
           run: |
             cat > reports/index.html << 'EOF'
