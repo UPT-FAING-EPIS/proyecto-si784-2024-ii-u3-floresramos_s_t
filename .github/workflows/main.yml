@@ -130,10 +130,8 @@ jobs:
           with:
             node-version: '18.x'
   
-        - name: Install Playwright dependencies
+        - name: Install Playwright dependencies directly
           run: |
-            cd PROYECTO_PDF
-            npm install
             npx playwright install
   
         - name: Start application server
@@ -144,7 +142,6 @@ jobs:
   
         - name: Run Playwright Tests
           run: |
-            cd PROYECTO_PDF/Tests
             npx playwright test --reporter=json > reports/playwright-test-results.json
   
         - name: Stop server
