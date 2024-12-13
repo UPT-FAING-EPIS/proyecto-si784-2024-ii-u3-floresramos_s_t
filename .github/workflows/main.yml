@@ -220,11 +220,11 @@ jobs:
         
         - name: Generate Simple HTML Report
           run: |
-            # Crear estructura de directorios
             mkdir -p reports/playwright
             
-            # Generar HTML directo con los archivos
-            echo "<!DOCTYPE html>
+            # Archivo HTML base
+            cat > reports/playwright/index.html << 'EOF'
+            <!DOCTYPE html>
             <html>
             <head>
                 <title>Playwright Test Results</title>
@@ -243,56 +243,96 @@ jobs:
                         border-radius: 8px;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                     }
+                    .media-item {
+                        margin: 20px 0;
+                        padding: 15px;
+                        border: 1px solid #eee;
+                        border-radius: 4px;
+                    }
                     img, video {
                         max-width: 100%;
                         margin: 10px 0;
                         border-radius: 4px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
                     }
                     h2 { 
                         color: #333;
                         border-bottom: 2px solid #2196F3;
                         padding-bottom: 10px;
                     }
+                    h3 {
+                        color: #666;
+                        margin: 10px 0;
+                    }
+                    .test-name {
+                        font-weight: bold;
+                        color: #2196F3;
+                        margin-bottom: 10px;
+                    }
                 </style>
             </head>
             <body>
                 <h1>Playwright Test Results</h1>
-                " > reports/playwright/index.html
+            EOF
         
             # Agregar sección de screenshots
-            echo "
-                <div class='section'>
-                    <h2>Screenshots</h2>" >> reports/playwright/index.html
+            echo "<div class='section'><h2>Screenshots</h2>" >> reports/playwright/index.html
             
-            # Agregar cada screenshot encontrado
+            # Mapeo de nombres de screenshots
+            declare -A screenshot_names=(
+                ["before-login-failure.png"]="Login Failure - Before Attempt"
+                ["after-login-failure.png"]="Login Failure - After Attempt"
+                ["before-registration.png"]="Registration - Before Submit"
+                ["after-registration.png"]="Registration - After Submit"
+                ["before-login.png"]="Login Success - Before Attempt"
+                ["after-login-success.png"]="Login Success - After Attempt"
+                ["premium-link-not-found.png"]="Premium Subscription - Link Check"
+                ["premium-page.png"]="Premium Subscription - Details Page"
+                ["premium-success.png"]="Premium Subscription - Success"
+            )
+        
+            # Agregar screenshots con nombres descriptivos
             find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec sh -c '
                 for file; do
                     filename=$(basename "$file")
                     cp "$file" "reports/playwright/$filename"
-                    echo "<div><h3>$filename</h3><img src=\"$filename\" alt=\"$filename\"></div>" >> reports/playwright/index.html
+                    name="${screenshot_names[$filename]:-$filename}"
+                    echo "<div class=\"media-item\">
+                            <div class=\"test-name\">$name</div>
+                            <img src=\"$filename\" alt=\"$name\">
+                          </div>" >> reports/playwright/index.html
                 done
             ' sh {} +
         
             # Agregar sección de videos
-            echo "
-                </div>
-                <div class='section'>
-                    <h2>Test Videos</h2>" >> reports/playwright/index.html
+            echo "</div><div class='section'><h2>Test Videos</h2>" >> reports/playwright/index.html
             
-            # Agregar cada video encontrado
-            find PROYECTO_PDF/NegocioPDF.Tests -name "*.webm" -exec sh -c '
-                for file; do
-                    filename=$(basename "$file")
-                    cp "$file" "reports/playwright/$filename"
-                    echo "<div><h3>$filename</h3><video controls src=\"$filename\"></video></div>" >> reports/playwright/index.html
+            # Mapeo de nombres de videos
+            declare -A video_names=(
+                ["LoginFailure_ShouldShowError"]="Login Failure Test"
+                ["Register_NewUser"]="User Registration Test"
+                ["TestPremiumSubscriptionFlow"]="Premium Subscription Flow Test"
+                ["LoginSuccess_ShouldShowOperationsButton"]="Login Success Test"
+            )
+        
+            # Copiar y renombrar videos
+            find PROYECTO_PDF/NegocioPDF.Tests -name "*.webm" | while read -r video; do
+                for test_name in "${!video_names[@]}"; do
+                    if grep -q "$test_name" <<< "$video"; then
+                        friendly_name="${video_names[$test_name]}"
+                        new_name="$test_name.webm"
+                        cp "$video" "reports/playwright/$new_name"
+                        echo "<div class=\"media-item\">
+                                <div class=\"test-name\">$friendly_name</div>
+                                <video controls src=\"$new_name\"></video>
+                              </div>" >> reports/playwright/index.html
+                        break
+                    fi
                 done
-            ' sh {} +
+            done
         
             # Cerrar HTML
-            echo "
-                </div>
-            </body>
-            </html>" >> reports/playwright/index.html
+            echo "</div></body></html>" >> reports/playwright/index.html
         - name: Upload Updated Reports
           if: always()
           uses: actions/upload-artifact@v4
