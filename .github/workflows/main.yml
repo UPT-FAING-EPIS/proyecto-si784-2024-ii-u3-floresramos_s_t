@@ -205,28 +205,49 @@ jobs:
             <head>
                 <title>Playwright Test Results</title>
                 <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .container { max-width: 1200px; margin: 0 auto; }
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        margin: 20px;
+                        background-color: #f5f5f5;
+                    }
+                    .container { 
+                        max-width: 1200px; 
+                        margin: 0 auto; 
+                        padding: 20px;
+                    }
                     .section { 
-                        margin: 20px 0; 
-                        padding: 20px; 
-                        border: 1px solid #ddd; 
-                        border-radius: 5px;
-                        background-color: white;
+                        background: white;
+                        padding: 20px;
+                        margin: 20px 0;
+                        border-radius: 8px;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                     }
-                    img { max-width: 100%; margin: 10px 0; }
-                    video { 
-                        width: 100%;
-                        max-width: 800px;
-                        margin: 10px 0;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                    }
-                    .grid {
+                    .media-grid {
                         display: grid;
                         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
                         gap: 20px;
+                        margin-top: 20px;
+                    }
+                    .media-item {
+                        background: white;
+                        padding: 10px;
+                        border-radius: 4px;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    }
+                    .media-item img {
+                        width: 100%;
+                        height: auto;
+                        border-radius: 4px;
+                    }
+                    .media-item video {
+                        width: 100%;
+                        border-radius: 4px;
+                    }
+                    h2 {
+                        margin: 0;
+                        padding-bottom: 10px;
+                        border-bottom: 2px solid #2196F3;
+                        color: #333;
                     }
                 </style>
             </head>
@@ -236,51 +257,70 @@ jobs:
                     
                     <div class="section">
                         <h2>Screenshots</h2>
-                        <div class="grid" id="screenshots"></div>
+                        <div class="media-grid" id="screenshots"></div>
                     </div>
                     
                     <div class="section">
                         <h2>Test Videos</h2>
-                        <div id="videos"></div>
+                        <div class="media-grid" id="videos"></div>
                     </div>
                 </div>
-                    <script>
-                    // Cargar screenshots
-                    const screenshotsContainer = document.getElementById('screenshots');
-                    const videosContainer = document.getElementById('videos');
-                            // Función para listar archivos
-                    async function listFiles(path, container, type) {
-                        try {
-                            const response = await fetch(path);
-                            const html = await response.text();
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(html, 'text/html');
-                            
-                            const extension = type === 'image' ? '.png' : '.webm';
-                            const files = Array.from(doc.querySelectorAll('a'))
-                                .filter(a => a.href.endsWith(extension))
-                                .map(a => a.href.split('/').pop());
-                                    files.forEach(file => {
-                                if (type === 'image') {
-                                    const img = document.createElement('img');
-                                    img.src = `screenshots/${file}`;
-                                    img.alt = file;
-                                    container.appendChild(img);
-                                } else {
-                                    const video = document.createElement('video');
-                                    video.src = `videos/${file}`;
-                                    video.controls = true;
-                                    video.style.width = '100%';
-                                    container.appendChild(video);
+        
+                <script>
+                    async function loadMedia() {
+                        // Función para cargar y mostrar media
+                        async function loadFiles(path, container, type) {
+                            try {
+                                const response = await fetch(path);
+                                const text = await response.text();
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(text, 'text/html');
+                                
+                                const links = Array.from(doc.querySelectorAll('a'));
+                                const files = links
+                                    .map(a => a.href)
+                                    .filter(href => {
+                                        const ext = type === 'image' ? '.png' : '.webm';
+                                        return href.toLowerCase().endsWith(ext);
+                                    })
+                                    .map(href => href.split('/').pop());
+        
+                                files.forEach(filename => {
+                                    const div = document.createElement('div');
+                                    div.className = 'media-item';
+        
+                                    if (type === 'image') {
+                                        const img = document.createElement('img');
+                                        img.src = filename;
+                                        img.alt = filename;
+                                        div.appendChild(img);
+                                    } else {
+                                        const video = document.createElement('video');
+                                        video.src = `videos/${filename}`;
+                                        video.controls = true;
+                                        div.appendChild(video);
+                                    }
+        
+                                    container.appendChild(div);
+                                });
+        
+                                // Mostrar mensaje si no hay archivos
+                                if (files.length === 0) {
+                                    container.innerHTML = `<p>No ${type}s available</p>`;
                                 }
-                            });
-                        } catch (error) {
-                            console.error('Error loading files:', error);
+                            } catch (error) {
+                                console.error(`Error loading ${type}s:`, error);
+                                container.innerHTML = `<p>Error loading ${type}s</p>`;
+                            }
                         }
+        
+                        // Cargar screenshots y videos
+                        await loadFiles('.', document.getElementById('screenshots'), 'image');
+                        await loadFiles('videos', document.getElementById('videos'), 'video');
                     }
-                            // Cargar ambos tipos de archivos
-                    listFiles('screenshots', screenshotsContainer, 'image');
-                    listFiles('videos', videosContainer, 'video');
+        
+                    // Iniciar carga cuando el documento esté listo
+                    document.addEventListener('DOMContentLoaded', loadMedia);
                 </script>
             </body>
             </html>
