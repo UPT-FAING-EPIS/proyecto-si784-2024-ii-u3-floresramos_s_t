@@ -122,7 +122,7 @@ jobs:
   ui-test:
     name: UI Tests with Playwright
     runs-on: ubuntu-latest
-    needs: [tests-and-coverage]  # Asegura que se ejecute después de los otros tests
+    needs: [tests-and-coverage]
     steps:
         - uses: actions/checkout@v4
   
@@ -130,13 +130,6 @@ jobs:
           uses: actions/setup-dotnet@v4
           with:
             dotnet-version: ${{ env.DOTNET_VERSION }}
-
-        # Descargar los reportes existentes
-        - name: Download existing reports
-          uses: actions/download-artifact@v4
-          with:
-            name: reports
-            path: reports
 
         - name: Restore dependencies
           working-directory: PROYECTO_PDF
@@ -153,28 +146,89 @@ jobs:
             dotnet build
             pwsh bin/Debug/net8.0/playwright.ps1 install --with-deps
             
+        # Crear directorio playwright dentro de reports
+        - name: Create playwright directory
+          run: mkdir -p reports/playwright
+            
         - name: Run Playwright tests
           working-directory: PROYECTO_PDF/NegocioPDF.Tests
           run: |
-            mkdir -p ../../reports/playwright
-            dotnet test --filter "FullyQualifiedName~UITests.SubscriptionTests" --logger "trx;LogFileName=../../reports/playwright/playwright-results.trx" || true
+            dotnet test --filter "FullyQualifiedName~UITests.SubscriptionTests" || true
 
         - name: Copy Test Results
           if: always()
           run: |
+            # Copiar capturas de pantalla
+            find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec cp {} reports/playwright/ \;
+            
+            # Copiar videos si existen
             if [ -d "PROYECTO_PDF/NegocioPDF.Tests/videos" ]; then
               cp -r PROYECTO_PDF/NegocioPDF.Tests/videos reports/playwright/
             fi
-            find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec cp {} reports/playwright/ \;
 
-        # Subir todos los reportes actualizados
-        - name: Upload updated reports
-          if: always()
-          uses: actions/upload-artifact@v4
-          with:
-            name: reports
-            path: reports
-            overwrite: true
+        - name: Generate HTML Report
+          run: |
+            cat > reports/playwright/index.html << 'EOF'
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Playwright Test Results</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .container { max-width: 1200px; margin: 0 auto; }
+                    .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                    img { max-width: 100%; margin: 10px 0; }
+                    .video { margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Playwright Test Results</h1>
+                    <div class="section">
+                        <h2>Screenshots</h2>
+                        <div id="screenshots"></div>
+                    </div>
+                    <div class="section">
+                        <h2>Videos</h2>
+                        <div id="videos"></div>
+                    </div>
+                </div>
+                <script>
+                    // Script para cargar dinámicamente las imágenes y videos
+                    fetch('.')
+                        .then(response => response.text())
+                        .then(text => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(text, 'text/html');
+                            
+                            // Procesar screenshots
+                            const screenshots = Array.from(doc.querySelectorAll('a'))
+                                .filter(a => a.href.endsWith('.png'))
+                                .map(a => a.href);
+                            
+                            screenshots.forEach(src => {
+                                const img = document.createElement('img');
+                                img.src = src.split('/').pop();
+                                document.getElementById('screenshots').appendChild(img);
+                            });
+                            
+                            // Procesar videos
+                            const videos = Array.from(doc.querySelectorAll('a'))
+                                .filter(a => a.href.endsWith('.webm'))
+                                .map(a => a.href);
+                            
+                            videos.forEach(src => {
+                                const video = document.createElement('video');
+                                video.src = 'videos/' + src.split('/').pop();
+                                video.controls = true;
+                                video.className = 'video';
+                                document.getElementById('videos').appendChild(video);
+                            });
+                        });
+                </script>
+            </body>
+            </html>
+            EOF
         - name: Create Dashboard
           run: |
             cat > reports/index.html << 'EOF'
@@ -265,13 +319,12 @@ jobs:
                 <div class="report-links">
                   <a href="https://sonarcloud.io/dashboard?id=mario-flores_proyectopdf" target="_blank">View SonarQube Dashboard</a>
                 </div>
-             <div class="card">
+            <div class="card">
                   <h2>Playwright Test Results</h2>
                   <div class="report-links">
-                      <a href="playwright/playwright-results.trx">View Test Results</a>
-                      <a href="playwright/videos">View Test Videos</a>
-                      <a href="playwright">View Screenshots</a>
+                      <a href="playwright/index.html">View Playwright Results</a>
                   </div>
+              </div>
               </div>
   
               </div>
