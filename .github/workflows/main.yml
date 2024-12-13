@@ -119,13 +119,23 @@ jobs:
           mkdir -p reports/bdd
           cd PROYECTO_PDF
           livingdoc test-assembly ./NegocioPDF.Tests/bin/Debug/net8.0/NegocioPDF.Tests.dll -t ./NegocioPDF.Tests/bin/Debug/net8.0/TestExecution.json -o ../reports/bdd/bdd-report.html
+      - name: Upload Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-artifact
+          path: reports
   ui-test:
     name: UI Tests with Playwright
     runs-on: ubuntu-latest
     needs: [tests-and-coverage]
     steps:
         - uses: actions/checkout@v4
-  
+        - name: Download Previous Reports
+          uses: actions/download-artifact@v4
+          with:
+            name: reports-artifact
+            path: reports
         - name: Set up .NET
           uses: actions/setup-dotnet@v4
           with:
@@ -229,6 +239,14 @@ jobs:
             </body>
             </html>
             EOF
+
+        - name: Upload Updated Reports
+          if: always()
+          uses: actions/upload-artifact@v4
+          with:
+            name: reports-artifact
+            path: reports
+            overwrite: true
         - name: Create Dashboard
           run: |
             cat > reports/index.html << 'EOF'
