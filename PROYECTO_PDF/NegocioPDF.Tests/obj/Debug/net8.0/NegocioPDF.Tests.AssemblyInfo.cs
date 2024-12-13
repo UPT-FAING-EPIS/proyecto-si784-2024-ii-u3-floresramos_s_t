@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NegocioPDF.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+228d562be344824698c953890f63e899988f022b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+58f566ae2b80ca4ef4d2726ec57aaf776a054a0d")]
 [assembly: System.Reflection.AssemblyProductAttribute("NegocioPDF.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NegocioPDF.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
