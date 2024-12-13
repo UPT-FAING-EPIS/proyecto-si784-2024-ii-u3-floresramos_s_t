@@ -1,32 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\PROYECTOPDF\\PROYECTOPDF.csproj": {}
+    "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\proyectopdf\\PROYECTOPDF.csproj": {}
   },
   "projects": {
-    "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj": {
+    "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj",
+        "projectUniqueName": "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj",
         "projectName": "PDFOperationsF",
-        "projectPath": "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj",
-        "packagesPath": "C:\\Users\\hp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\obj\\",
+        "projectPath": "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj",
+        "packagesPath": "C:\\Users\\Mario\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\hp\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\Mario\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -43,9 +36,8 @@
         "restoreAuditProperties": {
           "enableAudit": "true",
           "auditLevel": "low",
-          "auditMode": "all"
-        },
-        "SdkAnalysisLevel": "9.0.100"
+          "auditMode": "direct"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -96,41 +88,34 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.404/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\PROYECTOPDF\\PROYECTOPDF.csproj": {
+    "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\proyectopdf\\PROYECTOPDF.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\PROYECTOPDF\\PROYECTOPDF.csproj",
+        "projectUniqueName": "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\proyectopdf\\PROYECTOPDF.csproj",
         "projectName": "PROYECTOPDF",
-        "projectPath": "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\PROYECTOPDF\\PROYECTOPDF.csproj",
-        "packagesPath": "C:\\Users\\hp\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\PROYECTOPDF\\obj\\",
+        "projectPath": "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\proyectopdf\\PROYECTOPDF.csproj",
+        "packagesPath": "C:\\Users\\Mario\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\proyectopdf\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\hp\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "C:\\Users\\Mario\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj": {
-                "projectPath": "C:\\Users\\hp\\OneDrive\\Escritorio\\CALIDAD\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj"
+              "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj": {
+                "projectPath": "C:\\Users\\Mario\\Desktop\\Nueva carpeta (10)\\proyecto-si784-2024-ii-u3-floresramos_s_t\\PROYECTO_PDF\\NegocioPDF\\NegocioPDF.csproj"
               }
             }
           }
@@ -143,9 +128,8 @@
         "restoreAuditProperties": {
           "enableAudit": "true",
           "auditLevel": "low",
-          "auditMode": "all"
-        },
-        "SdkAnalysisLevel": "9.0.100"
+          "auditMode": "direct"
+        }
       },
       "frameworks": {
         "net8.0": {
@@ -211,7 +195,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.404/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

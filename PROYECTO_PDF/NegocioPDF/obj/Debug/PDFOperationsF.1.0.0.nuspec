@@ -6,7 +6,7 @@
     <authors>Mario</authors>
     <description>Proyecto que permite realizar operaciones de fusión y corte de PDF utilizando .NET Core 8.0.</description>
     <tags>pdf fusionar cortar dapper</tags>
-    <repository type="git" />
+    <repository type="git" commit="ded632d44ec4c6c6670ee403f1739edcb8d4ac3b" />
     <dependencies>
       <group targetFramework="net8.0">
         <dependency id="Dapper.Contrib" version="2.0.78" exclude="Build,Analyzers" />
@@ -20,6 +20,6 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="D:\aaa\PROYECTO_PDF\NegocioPDF\bin\Debug\net8.0\NegocioPDF.dll" target="lib\net8.0\NegocioPDF.dll" />
+    <file src="C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\bin\Debug\net8.0\NegocioPDF.dll" target="lib\net8.0\NegocioPDF.dll" />
   </files>
 </package>

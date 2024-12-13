@@ -9,69 +9,67 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = PROYECTOPDF
 build_property.RootNamespace = PROYECTOPDF
-build_property.ProjectDir = C:\Users\hp\OneDrive\Escritorio\CALIDAD\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\PROYECTOPDF\
+build_property.ProjectDir = C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\proyectopdf\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\hp\OneDrive\Escritorio\CALIDAD\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\PROYECTOPDF
+build_property.MSBuildProjectDirectory = C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\proyectopdf
 build_property._RazorSourceGeneratorDebug = 
-build_property.EffectiveAnalysisLevelStyle = 8.0
-build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Auth/Login.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Auth/Login.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXV0aFxMb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/OperacionesPDF/CortarPDF.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/OperacionesPDF/CortarPDF.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcT3BlcmFjaW9uZXNQREZcQ29ydGFyUERGLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/OperacionesPDF/FusionarPDF.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/OperacionesPDF/FusionarPDF.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcT3BlcmFjaW9uZXNQREZcRnVzaW9uYXJQREYuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/OperacionesPDF/Operaciones.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/OperacionesPDF/Operaciones.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcT3BlcmFjaW9uZXNQREZcT3BlcmFjaW9uZXMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Operaciones/Operaciones.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Operaciones/Operaciones.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcT3BlcmFjaW9uZXNcT3BlcmFjaW9uZXMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Registration/Registrarse.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Registration/Registrarse.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVnaXN0cmF0aW9uXFJlZ2lzdHJhcnNlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Shared/Error.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Shared/_ValidationScriptsPartial.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Suscripcion/ComprarPremium.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Suscripcion/ComprarPremium.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3VzY3JpcGNpb25cQ29tcHJhclByZW1pdW0uY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Suscripcion/MenuPrincipal.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Suscripcion/MenuPrincipal.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3VzY3JpcGNpb25cTWVudVByaW5jaXBhbC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Suscripcion/SeleccionarTipoSuscripcion.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Suscripcion/SeleccionarTipoSuscripcion.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU3VzY3JpcGNpb25cU2VsZWNjaW9uYXJUaXBvU3VzY3JpcGNpb24uY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/_ViewImports.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/_ViewStart.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/hp/OneDrive/Escritorio/CALIDAD/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/PROYECTOPDF/Views/Shared/_Layout.cshtml]
+[C:/Users/Mario/Desktop/Nueva carpeta (10)/proyecto-si784-2024-ii-u3-floresramos_s_t/PROYECTO_PDF/proyectopdf/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-xh3v0bnge8

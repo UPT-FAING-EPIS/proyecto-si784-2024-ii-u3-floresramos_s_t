@@ -21,3 +21,16 @@ d:\aaa\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.dll
 d:\aaa\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\refint\NegocioPDF.dll
 d:\aaa\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.pdb
 d:\aaa\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\ref\NegocioPDF.dll
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\bin\Debug\net8.0\NegocioPDF.deps.json
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\bin\Debug\net8.0\NegocioPDF.dll
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\bin\Debug\net8.0\NegocioPDF.pdb
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.csproj.AssemblyReference.cache
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.AssemblyInfoInputs.cache
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.AssemblyInfo.cs
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.csproj.CoreCompileInputs.cache
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.sourcelink.json
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.dll
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\refint\NegocioPDF.dll
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\NegocioPDF.pdb
+C:\Users\Mario\Desktop\Nueva carpeta (10)\proyecto-si784-2024-ii-u3-floresramos_s_t\PROYECTO_PDF\NegocioPDF\obj\Debug\net8.0\ref\NegocioPDF.dll
