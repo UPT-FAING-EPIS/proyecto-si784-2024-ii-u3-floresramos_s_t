@@ -187,15 +187,15 @@ jobs:
         - name: Copy Test Results
           if: always()
           run: |
-            # Crear estructura de directorios
-            mkdir -p reports/playwright/videos
+            # Asegurar que los directorios existen
             mkdir -p reports/playwright/screenshots
-            
-            # Copiar screenshots
+            mkdir -p reports/playwright/videos
+        
+            # Copiar screenshots a su directorio
             find PROYECTO_PDF/NegocioPDF.Tests -name "*.png" -exec cp {} reports/playwright/screenshots/ \;
-            
-            # Copiar videos (incluyendo subdirectorios)
-            find PROYECTO_PDF/NegocioPDF.Tests -name "*.webm" -exec cp --parents {} reports/playwright/videos/ \;
+        
+            # Copiar videos a su directorio
+            find PROYECTO_PDF/NegocioPDF.Tests -name "*.webm" -exec cp {} reports/playwright/videos/ \;
 
         - name: Generate HTML Report
           run: |
@@ -205,16 +205,8 @@ jobs:
             <head>
                 <title>Playwright Test Results</title>
                 <style>
-                    body { 
-                        font-family: Arial, sans-serif; 
-                        margin: 20px;
-                        background-color: #f5f5f5;
-                    }
-                    .container { 
-                        max-width: 1200px; 
-                        margin: 0 auto;
-                        padding: 20px;
-                    }
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .container { max-width: 1200px; margin: 0 auto; }
                     .section { 
                         margin: 20px 0; 
                         padding: 20px; 
@@ -223,72 +215,72 @@ jobs:
                         background-color: white;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                     }
-                    img { 
-                        max-width: 100%; 
-                        margin: 10px 0;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                    }
-                    .video { 
+                    img { max-width: 100%; margin: 10px 0; }
+                    video { 
                         width: 100%;
+                        max-width: 800px;
                         margin: 10px 0;
                         border: 1px solid #ddd;
                         border-radius: 4px;
                     }
-                    h2 {
-                        color: #333;
-                        border-bottom: 2px solid #2196F3;
-                        padding-bottom: 10px;
+                    .grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                        gap: 20px;
                     }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <h1>Playwright Test Results</h1>
+                    
                     <div class="section">
                         <h2>Screenshots</h2>
-                        <div id="screenshots"></div>
+                        <div class="grid" id="screenshots"></div>
                     </div>
+                    
                     <div class="section">
                         <h2>Test Videos</h2>
                         <div id="videos"></div>
                     </div>
                 </div>
-                <script>
+                    <script>
                     // Cargar screenshots
-                    fetch('./screenshots')
-                        .then(response => response.text())
-                        .then(text => {
+                    const screenshotsContainer = document.getElementById('screenshots');
+                    const videosContainer = document.getElementById('videos');
+                            // Función para listar archivos
+                    async function listFiles(path, container, type) {
+                        try {
+                            const response = await fetch(path);
+                            const html = await response.text();
                             const parser = new DOMParser();
-                            const doc = parser.parseFromString(text, 'text/html');
-                            const screenshots = Array.from(doc.querySelectorAll('a'))
-                                .filter(a => a.href.endsWith('.png'))
-                                .map(a => a.href);
+                            const doc = parser.parseFromString(html, 'text/html');
                             
-                            screenshots.forEach(src => {
-                                const img = document.createElement('img');
-                                img.src = 'screenshots/' + src.split('/').pop();
-                                document.getElementById('screenshots').appendChild(img);
+                            const extension = type === 'image' ? '.png' : '.webm';
+                            const files = Array.from(doc.querySelectorAll('a'))
+                                .filter(a => a.href.endsWith(extension))
+                                .map(a => a.href.split('/').pop());
+                                    files.forEach(file => {
+                                if (type === 'image') {
+                                    const img = document.createElement('img');
+                                    img.src = `screenshots/${file}`;
+                                    img.alt = file;
+                                    container.appendChild(img);
+                                } else {
+                                    const video = document.createElement('video');
+                                    video.src = `videos/${file}`;
+                                    video.controls = true;
+                                    video.style.width = '100%';
+                                    container.appendChild(video);
+                                }
                             });
-                        });
-                                        // Cargar videos
-                    fetch('./videos')
-                        .then(response => response.text())
-                        .then(text => {
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(text, 'text/html');
-                            const videos = Array.from(doc.querySelectorAll('a'))
-                                .filter(a => a.href.endsWith('.webm'))
-                                .map(a => a.href);
-                            
-                            videos.forEach(src => {
-                                const video = document.createElement('video');
-                                video.src = 'videos/' + src.split('/').pop();
-                                video.controls = true;
-                                video.className = 'video';
-                                document.getElementById('videos').appendChild(video);
-                            });
-                        });
+                        } catch (error) {
+                            console.error('Error loading files:', error);
+                        }
+                    }
+                            // Cargar ambos tipos de archivos
+                    listFiles('screenshots', screenshotsContainer, 'image');
+                    listFiles('videos', videosContainer, 'video');
                 </script>
             </body>
             </html>
