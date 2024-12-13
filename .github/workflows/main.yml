@@ -363,15 +363,16 @@ jobs:
                 <div class="report-links">
                   <a href="https://sonarcloud.io/dashboard?id=mario-flores_proyectopdf" target="_blank">View SonarQube Dashboard</a>
                 </div>
+                 </div>
             <div class="card">
                   <h2>Playwright Test Results</h2>
                   <div class="report-links">
                       <a href="playwright/index.html">View Playwright Results</a>
                   </div>
               </div>
-              </div>
+             
   
-              </div>
+              
             </body>
             </html>
             EOF
