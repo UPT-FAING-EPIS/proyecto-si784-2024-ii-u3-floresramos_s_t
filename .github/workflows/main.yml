@@ -125,45 +125,47 @@ jobs:
     steps:
         - uses: actions/checkout@v4
   
-        - name: Set up Node.js
-          uses: actions/setup-node@v3
+        - name: Set up .NET
+          uses: actions/setup-dotnet@v4
           with:
-            node-version: '18.x'
-  
-        - name: Install Playwright dependencies
+            dotnet-version: ${{ env.DOTNET_VERSION }}
+
+        - name: Install Playwright
+          working-directory: PROYECTO_PDF/NegocioPDF.Tests
           run: |
-            npx playwright install
-            npx playwright --version
-            npx playwright test --help
-  
-        - name: Start application server
+            dotnet tool install --global Microsoft.Playwright.CLI
+            playwright install
+            
+        - name: Build and Test
+          working-directory: PROYECTO_PDF/NegocioPDF.Tests
           run: |
-            cd PROYECTO_PDF
-            nohup dotnet run --urls "http://localhost:5260" > server.log 2>&1 &
-            sleep 5 # Asegurar tiempo para que el servidor esté listo
-  
-        - name: Ensure reports directory exists
-          run: mkdir -p reports
-  
-        - name: Debug - List files in directory
-          run: |
-            ls -al
-            ls -al PROYECTO_PDF
-  
-        - name: Run Playwright Tests
-          run: |
-            echo "Running tests with Playwright"
-            npx playwright test --reporter=json || true
-            echo "Playwright test results should now be checked."
-  
-        - name: Stop server
-          run: |
-            pkill -f "dotnet run --urls http://localhost:5260" || true
-  
-        - name: Process Playwright results
+            dotnet build
+            mkdir -p reports/playwright
+            dotnet test --filter "FullyQualifiedName~UITests.SubscriptionTests" --logger "trx;LogFileName=playwright-results.trx" || true
+
+        - name: Copy Test Results
+          if: always()
           run: |
             mkdir -p reports/playwright
-            cp -r reports/playwright-test-results.json reports/playwright/
+            if [ -d "PROYECTO_PDF/NegocioPDF.Tests/TestResults" ]; then
+              cp -r PROYECTO_PDF/NegocioPDF.Tests/TestResults/* reports/playwright/
+            fi
+            if [ -d "PROYECTO_PDF/NegocioPDF.Tests/videos" ]; then
+              cp -r PROYECTO_PDF/NegocioPDF.Tests/videos reports/playwright/
+            fi
+            if [ -d "PROYECTO_PDF/NegocioPDF.Tests/*.png" ]; then
+              cp PROYECTO_PDF/NegocioPDF.Tests/*.png reports/playwright/
+            fi
+
+        - name: Upload Playwright Results
+          if: always()
+          uses: actions/upload-artifact@v3
+          with:
+            name: playwright-results
+            path: |
+              reports/playwright
+              PROYECTO_PDF/NegocioPDF.Tests/**/*.png
+              PROYECTO_PDF/NegocioPDF.Tests/videos/
         - name: Create Dashboard
           run: |
             cat > reports/index.html << 'EOF'
